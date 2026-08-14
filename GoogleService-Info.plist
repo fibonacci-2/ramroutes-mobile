@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CLIENT_ID</key>
-	<string>460631177881-6bcno4o4n0tqs6q67en5hqr3vlhu8u07.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.460631177881-6bcno4o4n0tqs6q67en5hqr3vlhu8u07</string>
 	<key>API_KEY</key>
 	<string>AIzaSyAz1uHlzw6Dh2Hpq7twgg1jYzOpXjqmYX8</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.edgoanalytics.ramroutes</string>
+	<string>com.edgoanalytics.ramroutesmobile</string>
 	<key>PROJECT_ID</key>
 	<string>trials-of-venus</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:460631177881:ios:4d7defb8b3f7f25e0e9608</string>
+	<string>1:460631177881:ios:625f4b7e754efea20e9608</string>
 </dict>
 </plist>
