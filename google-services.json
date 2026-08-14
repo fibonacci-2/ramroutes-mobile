@@ -1,0 +1,64 @@
+{
+  "project_info": {
+    "project_number": "460631177881",
+    "project_id": "trials-of-venus",
+    "storage_bucket": "trials-of-venus.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460631177881:android:237ac30a25eeab410e9608",
+        "android_client_info": {
+          "package_name": "com.edgoanalytics.ramroutes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoyfyjD7mnV5Ne27N4_T0LSUFC13muuWI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "460631177881-6bcno4o4n0tqs6q67en5hqr3vlhu8u07.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.edgoanalytics.ramroutes"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:460631177881:android:2696599027ad5e9f0e9608",
+        "android_client_info": {
+          "package_name": "com.trialsofvenus"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBoyfyjD7mnV5Ne27N4_T0LSUFC13muuWI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "460631177881-6bcno4o4n0tqs6q67en5hqr3vlhu8u07.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.edgoanalytics.ramroutes"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

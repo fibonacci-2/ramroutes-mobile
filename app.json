@@ -7,19 +7,52 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.edgoanalytics.ramroutesmobile",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "RamRoutes uses your location to show events happening at buildings near you.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "RamRoutes uses your location in the background to notify you about events at buildings you're near.",
+        "UIBackgroundModes": ["location", "remote-notification"]
+      },
+      "config": {
+        "googleMapsApiKey": "REPLACE_WITH_IOS_GOOGLE_MAPS_API_KEY"
+      }
     },
     "android": {
+      "package": "com.edgoanalytics.ramroutesmobile",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAlTfVGWi42JXRY-LnWQeWEjMvH067dD0o"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "RamRoutes uses your location to show events happening at buildings near you."
+        }
+      ],
+      "expo-notifications"
+    ]
   }
 }
