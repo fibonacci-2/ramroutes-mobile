@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quad — campus events around you</title>
+<link rel="stylesheet" href="ds/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+<style>
+  html,body{height:100%}
+  body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .stage{display:flex;flex-direction:column;align-items:center;gap:14px}
+  .phone{width:393px;height:852px;background:#171412;border-radius:60px;padding:11px;box-shadow:var(--shadow-lg), 0 40px 80px color-mix(in srgb,#2e2b25 25%,transparent);flex:none;transform-origin:center}
+  .screen{position:relative;width:100%;height:100%;border-radius:49px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column}
+  .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:118px;height:34px;background:#171412;border-radius:20px;z-index:60}
+  .statusbar{flex:none;height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-weight:700;font-size:15px;z-index:55;position:relative}
+  .sb-icons{display:flex;align-items:center;gap:6px}
+  .homebar{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:99px;background:var(--color-text);opacity:.85;z-index:60}
+  .views{flex:1;position:relative;min-height:0;overflow:hidden}
+  #detail{visibility:hidden}
+  #detail.open{visibility:visible}
+  .view{position:absolute;inset:0;display:none;flex-direction:column;min-height:0}
+  .view.on{display:flex}
+  .tabbar{flex:none;display:flex;justify-content:space-around;align-items:center;padding:8px 14px 24px;background:color-mix(in srgb,var(--color-bg) 88%, white);border-top:1px solid var(--color-divider);z-index:50}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:var(--color-neutral-600);background:none;border:none;cursor:pointer;padding:6px 12px;border-radius:16px;font-family:var(--font-body)}
+  .tab.on{color:var(--color-accent-700)}
+  .tab.on .tabic{background:var(--color-accent-200)}
+  .tabic{width:44px;height:28px;border-radius:99px;display:flex;align-items:center;justify-content:center}
+  .tab:hover .tabic{background:var(--color-accent-100)}
+  /* map */
+  #map{position:absolute;inset:0;z-index:1;background:#e8e0cf}
+  .map-top{position:absolute;top:64px;left:14px;right:14px;z-index:40;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+  .searchpill{pointer-events:auto;display:flex;align-items:center;gap:10px;background:white;border-radius:999px;padding:12px 16px;box-shadow:var(--shadow-md);color:var(--color-neutral-600);font-weight:600;font-size:14px;border:none;width:100%;cursor:pointer;font-family:var(--font-body)}
+  .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;pointer-events:auto;padding-bottom:2px}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{flex:none;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid var(--color-divider);background:white;font-family:var(--font-body);font-weight:700;font-size:12.5px;color:var(--color-text);cursor:pointer;box-shadow:var(--shadow-sm)}
+  .chip:hover{background:var(--color-accent-100)}
+  .chip.on{background:var(--color-text);border-color:var(--color-text);color:var(--color-bg)}
+  .locbtn{position:absolute;right:14px;bottom:196px;z-index:40;width:44px;height:44px;border-radius:999px;background:white;border:none;box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:center;color:var(--color-accent-700);cursor:pointer}
+  .locbtn:hover{background:var(--color-accent-100)}
+  .cardrail{position:absolute;left:0;right:0;bottom:12px;z-index:40;display:flex;gap:10px;overflow-x:auto;padding:6px 14px;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .cardrail::-webkit-scrollbar{display:none}
+  .mcard{flex:none;width:300px;scroll-snap-align:center;background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer;border:2px solid transparent}
+  .mcard.sel{border-color:var(--color-accent)}
+  .evic{flex:none;width:54px;height:54px;border-radius:20px;display:flex;align-items:center;justify-content:center}
+  .mcard h5{margin:0 0 2px;font-size:15px;line-height:1.15}
+  .meta{font-size:11.5px;font-weight:600;color:var(--color-neutral-600);line-height:1.35}
+  .pin{width:36px;height:36px;border-radius:999px 999px 999px 6px;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(46,43,37,.35);border:2.5px solid #fff;transition:transform .15s}
+  .pin svg{transform:rotate(45deg)}
+  .pin.sel{transform:rotate(-45deg) scale(1.25)}
+  .youdot{width:18px;height:18px;border-radius:99px;background:var(--color-accent-2-600);border:3px solid white;box-shadow:0 0 0 6px color-mix(in srgb,var(--color-accent-2-500) 30%,transparent)}
+  .leaflet-control-attribution{font-size:8px;opacity:.75}
+  /* shared screens */
+  .shead{flex:none;padding:10px 20px 6px}
+  .shead h2{font-size:27px;margin:0}
+  .scroll{flex:1;overflow-y:auto;min-height:0;scrollbar-width:none}
+  .scroll::-webkit-scrollbar{display:none}
+  .searchbox{display:flex;align-items:center;gap:10px;background:white;border-radius:999px;padding:11px 16px;margin:10px 20px 4px;box-shadow:var(--shadow-sm)}
+  .searchbox input{border:none;outline:none;flex:1;font-family:var(--font-body);font-size:14px;font-weight:600;background:none;color:var(--color-text)}
+  .searchbox input::placeholder{color:var(--color-neutral-500)}
+  .seg2{display:flex;gap:6px;margin:10px 20px;background:var(--color-surface);border-radius:999px;padding:4px}
+  .seg2 button{flex:1;border:none;border-radius:999px;padding:8px 0;font-family:var(--font-body);font-weight:700;font-size:12.5px;color:var(--color-neutral-700);background:none;cursor:pointer}
+  .seg2 button.on{background:white;box-shadow:var(--shadow-sm);color:var(--color-text)}
+  .daylbl{font-family:var(--font-heading);font-size:16px;margin:16px 20px 8px;display:flex;align-items:baseline;gap:8px}
+  .daylbl small{font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--color-neutral-600)}
+  .row{display:flex;align-items:center;gap:12px;padding:11px 20px;cursor:pointer}
+  .row:hover{background:color-mix(in srgb,var(--color-accent-100) 55%,transparent)}
+  .row h5{margin:0 0 2px;font-size:15px}
+  .bk{margin-left:auto;flex:none;border:none;background:none;color:var(--color-neutral-500);cursor:pointer;padding:8px;border-radius:99px}
+  .bk:hover{background:var(--color-accent-100);color:var(--color-accent-700)}
+  .bk.on{color:var(--color-accent)}
+  .empty{text-align:center;padding:70px 40px;color:var(--color-neutral-600)}
+  .empty .blob{width:96px;height:96px;border-radius:40% 60% 55% 45%/55% 45% 60% 40%;background:var(--color-surface);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;color:var(--color-accent-600)}
+  /* detail */
+  #detail{position:absolute;inset:0;z-index:70;background:var(--color-bg);display:flex;flex-direction:column;transform:translateY(103%);transition:transform .32s cubic-bezier(.32,.72,.25,1), visibility .32s}
+  #detail.open{transform:translateY(0)}
+  .hero{flex:none;height:210px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .hero .blob{width:150px;height:150px;border-radius:44% 56% 60% 40%/50% 42% 58% 50%;display:flex;align-items:center;justify-content:center}
+  .backbtn{position:absolute;top:60px;left:16px;width:40px;height:40px;border-radius:99px;background:white;border:none;box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text);z-index:5}
+  .backbtn:hover{background:var(--color-accent-100)}
+  .dbody{flex:1;overflow-y:auto;padding:20px 22px 120px;min-height:0;scrollbar-width:none}
+  .dbody h1{font-size:30px;line-height:1.1;margin:6px 0 12px}
+  .drow{display:flex;gap:12px;align-items:center;padding:9px 0;font-size:13.5px;font-weight:600;color:var(--color-neutral-800)}
+  .drow .ic{flex:none;width:38px;height:38px;border-radius:14px;background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-accent-700)}
+  .drow small{display:block;font-size:11px;color:var(--color-neutral-600);font-weight:600}
+  .dactions{position:absolute;bottom:0;left:0;right:0;padding:14px 20px 34px;background:linear-gradient(transparent,var(--color-bg) 38%);display:flex;gap:10px}
+  .pill{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 0;font-family:var(--font-heading);font-size:15px;border:none;cursor:pointer}
+  .pill.primary{background:var(--color-accent);color:white}
+  .pill.primary:hover{background:var(--color-accent-600)}
+  .pill.ghost{background:white;color:var(--color-text);box-shadow:var(--shadow-sm)}
+  .pill.ghost:hover{background:var(--color-accent-100)}
+  .tagrow{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px}
+  .tg{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--color-accent-2-200);color:var(--color-accent-2-800)}
+  .tg.warm{background:var(--color-accent-200);color:var(--color-accent-800)}
+  /* chat */
+  .msgs{flex:1;overflow-y:auto;min-height:0;padding:14px 16px 10px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+  .msg{max-width:78%;padding:11px 15px;border-radius:22px;font-size:13.5px;font-weight:500;line-height:1.45}
+  .msg.ai{align-self:flex-start;background:white;border-bottom-left-radius:8px;box-shadow:var(--shadow-sm)}
+  .msg.me{align-self:flex-end;background:var(--color-accent);color:white;border-bottom-right-radius:8px}
+  .evchip{align-self:flex-start;width:82%;display:flex;gap:10px;align-items:center;background:white;border-radius:20px;padding:10px 12px;box-shadow:var(--shadow-sm);cursor:pointer;border:1.5px solid var(--color-divider)}
+  .evchip:hover{border-color:var(--color-accent)}
+  .evchip h5{margin:0;font-size:13.5px}
+  .qchips{flex:none;display:flex;gap:8px;overflow-x:auto;padding:8px 16px;scrollbar-width:none}
+  .qchips::-webkit-scrollbar{display:none}
+  .qc{flex:none;border:1.5px solid var(--color-accent-300);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-body);font-weight:700;font-size:12px;padding:8px 13px;border-radius:999px;cursor:pointer}
+  .qc:hover{background:var(--color-accent-200)}
+  .composer{flex:none;display:flex;gap:8px;padding:8px 14px 12px}
+  .composer input{flex:1;border:none;outline:none;background:white;border-radius:999px;padding:13px 18px;font-family:var(--font-body);font-size:13.5px;font-weight:600;box-shadow:var(--shadow-sm);color:var(--color-text)}
+  .sendbtn{flex:none;width:46px;height:46px;border-radius:99px;border:none;background:var(--color-accent);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .sendbtn:hover{background:var(--color-accent-600)}
+  .dots{display:inline-flex;gap:4px;padding:4px 2px}
+  .dots i{width:6px;height:6px;border-radius:99px;background:var(--color-neutral-400);animation:bnc 1s infinite}
+  .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  @keyframes bnc{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+  .toast{position:absolute;bottom:110px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--color-text);color:var(--color-bg);font-size:12.5px;font-weight:700;padding:10px 18px;border-radius:999px;z-index:80;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .aihdr{display:flex;align-items:center;gap:10px;padding:10px 20px 8px}
+  .aihdr .av{width:40px;height:40px;border-radius:16px;background:var(--color-accent-2-200);color:var(--color-accent-2-800);display:flex;align-items:center;justify-content:center}
+  .aihdr h2{font-size:22px;margin:0}
+  .aihdr small{font-weight:600;font-size:11px;color:var(--color-accent-2-700)}
+</style>
+</head>
+<body>
+<div class="stage"><div class="phone" id="phone"><div class="screen">
+  <div class="island"></div>
+  <div class="statusbar"><span>9:41</span><span class="sb-icons" id="sbicons"></span></div>
+  <div class="views">
+    <!-- MAP -->
+    <div class="view on" id="v-map">
+      <div id="map"></div>
+      <div class="map-top">
+        <button class="searchpill" id="mapsearch"><span id="i-search"></span>Search events near campus…</button>
+        <div class="chips" id="mapchips"></div>
+      </div>
+      <button class="locbtn" id="locbtn" title="My location"></button>
+      <div class="cardrail" id="cardrail"></div>
+    </div>
+    <!-- EVENTS LIST -->
+    <div class="view" id="v-list">
+      <div class="shead"><h2>Events near you</h2></div>
+      <div class="searchbox"><span id="i-search2"></span><input id="q" placeholder="Career fair, jazz, volleyball…"></div>
+      <div class="seg2" id="dayseg"><button data-d="all" class="on">All</button><button data-d="today">Today</button><button data-d="weekend">Weekend</button></div>
+      <div class="chips" id="listchips" style="padding:0 20px 4px"></div>
+      <div class="scroll" id="list"></div>
+    </div>
+    <!-- CHAT -->
+    <div class="view" id="v-chat">
+      <div class="aihdr"><div class="av" id="i-spark"></div><div><h2>Scout</h2><small>Your event assistant</small></div></div>
+      <div class="msgs" id="msgs"></div>
+      <div class="qchips" id="qchips"></div>
+      <div class="composer"><input id="chatin" placeholder="Ask for a recommendation…"><button class="sendbtn" id="sendbtn"></button></div>
+    </div>
+    <!-- SAVED -->
+    <div class="view" id="v-saved">
+      <div class="shead"><h2>Saved</h2></div>
+      <div class="scroll" id="savedlist"></div>
+    </div>
+    <!-- DETAIL -->
+    <div id="detail"></div>
+    <div class="toast" id="toast"></div>
+  </div>
+  <div class="tabbar" id="tabbar"></div>
+  <div class="homebar"></div>
+</div></div></div>
+<script>
+const IC = {
+  map:'<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>',
+  cal:'<rect x="3" y="4" width="18" height="18" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+  bookmark:'<path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  brief:'<rect x="2" y="7" width="20" height="14" rx="4"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+  book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  spark:'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
+  send:'<path d="m22 2-11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+  back:'<path d="m15 18-6-6 6-6"/>',
+  nav:'<path d="M3 11l19-9-9 19-2-8-8-2z"/>',
+  locate:'<line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/>',
+  wifi:'<path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M12 20h.01"/>',
+  cell:'<path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/>',
+  batt:'<rect x="2" y="7" width="16" height="10" rx="3"/><line x1="22" x2="22" y1="11" y2="13"/>'
+};
+const icon=(n,s=20,w=2.75)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
+
+const CATS = {
+  career:{label:'Career', ic:'brief', bg:'#c67139', tint:'var(--color-accent-200)', ink:'var(--color-accent-800)'},
+  sports:{label:'Sports', ic:'trophy', bg:'#7a8a5e', tint:'var(--color-accent-2-200)', ink:'var(--color-accent-2-800)'},
+  clubs:{label:'Clubs', ic:'users', bg:'#b2622d', tint:'var(--color-accent-200)', ink:'var(--color-accent-800)'},
+  workshops:{label:'Workshops', ic:'book', bg:'#56633f', tint:'var(--color-accent-2-200)', ink:'var(--color-accent-2-800)'},
+  shows:{label:'Shows', ic:'music', bg:'#8c491a', tint:'var(--color-accent-200)', ink:'var(--color-accent-800)'},
+  volunteer:{label:'Volunteer', ic:'heart', bg:'#728157', tint:'var(--color-accent-2-200)', ink:'var(--color-accent-2-800)'}
+};
+const HERE=[42.2770,-83.7382]; // the Diag, Ann Arbor
+const EVENTS=[
+ {id:'expo',t:'Fall Career Expo',cat:'career',v:'Michigan Union, Rogel Ballroom',ll:[42.2749,-83.7420],day:'Fri',date:'Sep 18',time:'11:00 AM – 3:00 PM',sort:2,tags:['Free','120+ employers','Bring resumes'],desc:'The biggest recruiting event of the fall. 120+ companies across tech, consulting, healthcare and public service. Business casual suggested; free professional headshots 12–2.'},
+ {id:'resume',t:'Resume Clinic + Tech Talks',cat:'career',v:'Mason Hall, Room 1401',ll:[42.2772,-83.7402],day:'Tue',date:'Sep 22',time:'4:00 PM',sort:6,tags:['Free','Drop-in','1:1 reviews'],desc:'Drop-in resume reviews with peer career advisors, followed by two short talks from recent grads in software and product roles. Come for 15 minutes or stay the whole time.'},
+ {id:'vball',t:'Volleyball vs. Ohio State',cat:'sports',v:'Cliff Keen Arena',ll:[42.2686,-83.7446],day:'Fri',date:'Sep 18',time:'7:00 PM',sort:2,tags:['Students free','Rivalry game'],desc:'Rivalry night. Student section opens at 6:15 — arrive early, it fills fast. Free rally towels for the first 500 students.'},
+ {id:'soccer',t:'Intramural Soccer Finals',cat:'sports',v:'Palmer Field',ll:[42.2814,-83.7331],day:'Sat',date:'Sep 19',time:'2:00 PM',sort:3,tags:['Free','Outdoor'],desc:'Championship matches for the fall IM soccer bracket. Bring a blanket; food trucks parked on Washtenaw side from 1:30.'},
+ {id:'robot',t:'Robotics Club Open House',cat:'clubs',v:'Chemistry Building, Atrium',ll:[42.2781,-83.7369],day:'Thu',date:'Sep 17',time:'6:00 PM',sort:1,tags:['Free pizza','No experience needed'],desc:'Meet the build teams, drive last year\u2019s competition bot, and sign up for a fall project group. All majors welcome — design and outreach teams too.'},
+ {id:'salsa',t:'Salsa Club Social Night',cat:'clubs',v:'Michigan League Ballroom',ll:[42.2790,-83.7378],day:'Sat',date:'Sep 19',time:'8:00 PM',sort:3,tags:['Free','Beginner lesson 8pm'],desc:'Beginner lesson for the first hour, open dancing after. No partner or experience needed — shoes you can spin in help.'},
+ {id:'python',t:'Python for Data Workshop',cat:'workshops',v:'Hatcher Library, Lab 2',ll:[42.2764,-83.7382],day:'Mon',date:'Sep 21',time:'5:30 PM',sort:5,tags:['Free','Laptops provided','Beginner'],desc:'Hands-on intro to pandas and plotting with real campus datasets. Seats are limited to 40; waitlist opens at the door.'},
+ {id:'study',t:'Midterm Study Jam',cat:'workshops',v:'Shapiro Library, 3rd floor',ll:[42.2756,-83.7392],day:'Sun',date:'Sep 20',time:'7:00 PM',sort:4,tags:['Free coffee','Tutors on site'],desc:'Quiet floors, group rooms, and drop-in tutors for calc, orgo and stats. Coffee and snacks until midnight.'},
+ {id:'jazz',t:'Jazz Ensemble Night',cat:'shows',v:'Hill Auditorium',ll:[42.2794,-83.7391],day:'Sat',date:'Sep 19',time:'7:30 PM',sort:3,tags:['Students $5','Doors 7:00'],desc:'The university jazz ensemble with a guest trumpet soloist. Student rush tickets $5 at the door with ID.'},
+ {id:'improv',t:'Improv Comedy Show',cat:'shows',v:'Lydia Mendelssohn Theatre',ll:[42.2787,-83.7373],day:'Thu',date:'Sep 17',time:'9:00 PM',sort:1,tags:['Free','Late night'],desc:'The campus improv troupe\u2019s season opener. Suggestions from the audience drive every scene — sit up front if you want in.'},
+ {id:'arb',t:'Arb River Cleanup',cat:'volunteer',v:'Nichols Arboretum, main gate',ll:[42.2807,-83.7284],day:'Sun',date:'Sep 20',time:'9:00 AM',sort:4,tags:['Gloves provided','2 hrs'],desc:'Two-hour cleanup along the Huron River bank. Gloves, bags and grabbers provided; closed-toe shoes required. Counts for service hours.'},
+ {id:'pantry',t:'Food Pantry Pack-a-thon',cat:'volunteer',v:'Ginsberg Center',ll:[42.2734,-83.7362],day:'Mon',date:'Sep 21',time:'3:00 PM',sort:5,tags:['Service hours','Walk-in'],desc:'Help pack 400 grocery boxes for the campus food pantry. Walk-ins welcome; shifts are 45 minutes.'}
+];
+const dist=ll=>{const R=3958.8,d=x=>x*Math.PI/180,a=Math.sin(d(ll[0]-HERE[0])/2)**2+Math.cos(d(HERE[0]))*Math.cos(d(ll[0]))*Math.sin(d(ll[1]-HERE[1])/2)**2;return (2*R*Math.asin(Math.sqrt(a))).toFixed(1)};
+const byId=id=>EVENTS.find(e=>e.id===id);
+
+// ---- state ----
+const LSKEY='quad.saved.v1';
+let saved=new Set(JSON.parse(localStorage.getItem(LSKEY)||'[]'));
+let mapCat='all', listCat='all', dayF='all', query='', selId=null, tab='map';
+const persist=()=>localStorage.setItem(LSKEY,JSON.stringify([...saved]));
+
+// ---- status bar + static icons ----
+document.getElementById('sbicons').innerHTML=icon('cell',15,2)+icon('wifi',15,2.5)+icon('batt',20,2);
+document.getElementById('i-search').innerHTML=icon('search',17);
+document.getElementById('i-search2').innerHTML=icon('search',17);
+document.getElementById('i-spark').innerHTML=icon('spark',20);
+document.getElementById('sendbtn').innerHTML=icon('send',18);
+document.getElementById('locbtn').innerHTML=icon('locate',19);
+
+// ---- tabs ----
+const TABS=[['map','map','Map'],['list','cal','Events'],['chat','chat','Scout'],['saved','bookmark','Saved']];
+const tabbar=document.getElementById('tabbar');
+tabbar.innerHTML=TABS.map(([id,ic,lb])=>`<button class="tab${id==='map'?' on':''}" data-t="${id}"><span class="tabic">${icon(ic,19)}</span>${lb}</button>`).join('');
+tabbar.onclick=e=>{const b=e.target.closest('.tab');if(!b)return;setTab(b.dataset.t)};
+function setTab(t){tab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+t));
+ closeDetail();
+ if(t==='map')setTimeout(()=>map.invalidateSize(),60);
+ if(t==='list')renderList();
+ if(t==='saved')renderSaved();
+ if(t==='chat')initChat();
+}
+
+// ---- map ----
+const map=L.map('map',{zoomControl:false,attributionControl:true}).setView([42.2769,-83.7375],15);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
+L.marker(HERE,{icon:L.divIcon({className:'',html:'<div class="youdot"></div>',iconSize:[18,18],iconAnchor:[9,9]}),interactive:false,zIndexOffset:-100}).addTo(map);
+let markers={};
+function pinHtml(ev,sel){const c=CATS[ev.cat];return `<div class="pin${sel?' sel':''}" style="background:${c.bg}">${icon(c.ic,15,2.75).replace('stroke="currentColor"','stroke="#fff"')}</div>`}
+function drawPins(){Object.values(markers).forEach(m=>map.removeLayer(m));markers={};
+ EVENTS.filter(e=>mapCat==='all'||e.cat===mapCat).forEach(ev=>{
+  const m=L.marker(ev.ll,{icon:L.divIcon({className:'',html:pinHtml(ev,ev.id===selId),iconSize:[36,36],iconAnchor:[18,32]})}).addTo(map);
+  m.on('click',()=>selectEvent(ev.id,true));markers[ev.id]=m;});}
+function refreshPinStyles(){Object.entries(markers).forEach(([id,m])=>m.setIcon(L.divIcon({className:'',html:pinHtml(byId(id),id===selId),iconSize:[36,36],iconAnchor:[18,32]})))}
+// chips
+const chipRow=(el,cur,cb)=>{el.innerHTML=`<button class="chip${cur==='all'?' on':''}" data-c="all">All</button>`+Object.entries(CATS).map(([k,c])=>`<button class="chip${cur===k?' on':''}" data-c="${k}">${icon(c.ic,13)} ${c.label}</button>`).join('');
+ el.onclick=e=>{const b=e.target.closest('.chip');if(b)cb(b.dataset.c)};};
+function setMapCat(c){mapCat=c;selId=null;chipRow(document.getElementById('mapchips'),c,setMapCat);drawPins();renderRail()}
+// card rail
+const rail=document.getElementById('cardrail');
+function railCard(ev){const c=CATS[ev.cat];return `<div class="mcard${ev.id===selId?' sel':''}" data-id="${ev.id}"><div class="evic" style="background:${c.tint};color:${c.ink}">${icon(c.ic,24)}</div><div style="min-width:0"><h5>${ev.t}</h5><div class="meta">${ev.day} ${ev.date} · ${ev.time.split(' – ')[0]}<br>${ev.v} · ${dist(ev.ll)} mi</div></div></div>`}
+function renderRail(){const evs=EVENTS.filter(e=>mapCat==='all'||e.cat===mapCat);rail.innerHTML=evs.map(railCard).join('');
+ rail.querySelectorAll('.mcard').forEach(c=>c.onclick=()=>{ if(c.dataset.id===selId)openDetail(c.dataset.id); else selectEvent(c.dataset.id,false)});}
+let railTmr;
+rail.addEventListener('scroll',()=>{clearTimeout(railTmr);railTmr=setTimeout(()=>{const cards=[...rail.querySelectorAll('.mcard')];if(!cards.length)return;
+ const mid=rail.scrollLeft+rail.clientWidth/2;let best=cards[0],bd=1e9;
+ cards.forEach(c=>{const d=Math.abs(c.offsetLeft+c.offsetWidth/2-mid);if(d<bd){bd=d;best=c}});
+ if(best.dataset.id!==selId){selId=best.dataset.id;refreshPinStyles();rail.querySelectorAll('.mcard').forEach(c=>c.classList.toggle('sel',c.dataset.id===selId));map.panTo(byId(selId).ll,{animate:true});}},120)});
+function selectEvent(id,fromPin){selId=id;refreshPinStyles();
+ rail.querySelectorAll('.mcard').forEach(c=>c.classList.toggle('sel',c.dataset.id===id));
+ const card=rail.querySelector(`.mcard[data-id="${id}"]`);
+ if(card)rail.scrollTo({left:card.offsetLeft-(rail.clientWidth-card.offsetWidth)/2,behavior:'smooth'});
+ map.panTo(byId(id).ll,{animate:true});
+ if(fromPin===undefined)openDetail(id);}
+document.getElementById('locbtn').onclick=()=>{selId=null;refreshPinStyles();map.flyTo([42.2769,-83.7375],15)};
+document.getElementById('mapsearch').onclick=()=>setTab('list');
+setMapCat('all');
+
+// ---- list ----
+document.getElementById('q').oninput=e=>{query=e.target.value.toLowerCase();renderList()};
+document.getElementById('dayseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;dayF=b.dataset.d;
+ document.querySelectorAll('#dayseg button').forEach(x=>x.classList.toggle('on',x===b));renderList()};
+function setListCat(c){listCat=c;chipRow(document.getElementById('listchips'),c,setListCat);renderList()}
+const DAYORDER=[['Thu Sep 17','Today'],['Fri Sep 18','Tomorrow'],['Sat Sep 19',''],['Sun Sep 20',''],['Mon Sep 21',''],['Tue Sep 22','']];
+const FULLDAY={Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday',Mon:'Monday',Tue:'Tuesday'};
+function rowHtml(ev){const c=CATS[ev.cat];return `<div class="row" data-id="${ev.id}"><div class="evic" style="width:46px;height:46px;border-radius:17px;background:${c.tint};color:${c.ink}">${icon(c.ic,21)}</div><div style="min-width:0"><h5>${ev.t}</h5><div class="meta">${ev.time.split(' – ')[0]} · ${ev.v} · ${dist(ev.ll)} mi</div></div><button class="bk${saved.has(ev.id)?' on':''}" data-bk="${ev.id}">${icon('bookmark',18)}</button></div>`}
+function filtered(){return EVENTS.filter(e=>(listCat==='all'||e.cat===listCat)
+ &&(dayF==='all'||(dayF==='today'&&e.day==='Thu')||(dayF==='weekend'&&(e.day==='Sat'||e.day==='Sun')))
+ &&(!query||(e.t+' '+e.v+' '+CATS[e.cat].label).toLowerCase().includes(query))).sort((a,b)=>a.sort-b.sort)}
+function renderList(){const evs=filtered();const el=document.getElementById('list');
+ if(!evs.length){el.innerHTML=`<div class="empty"><div class="blob">${icon('search',34)}</div><h4>Nothing matches</h4><p style="font-size:13px">Try a different day or category.</p></div>`;return}
+ el.innerHTML=DAYORDER.map(([d,nick])=>{const dayEvs=evs.filter(e=>`${e.day} ${e.date}`===d);if(!dayEvs.length)return '';
+  return `<div class="daylbl">${nick||FULLDAY[d.split(' ')[0]]} <small>${d.slice(4)}</small></div>`+dayEvs.map(rowHtml).join('')}).join('');
+ bindRows(el)}
+function bindRows(el){el.querySelectorAll('.bk').forEach(b=>b.onclick=e=>{e.stopPropagation();toggleSave(b.dataset.bk)});
+ el.querySelectorAll('.row').forEach(r=>r.onclick=()=>openDetail(r.dataset.id))}
+setListCat('all');
+
+// ---- saved ----
+function renderSaved(){const el=document.getElementById('savedlist');const evs=EVENTS.filter(e=>saved.has(e.id)).sort((a,b)=>a.sort-b.sort);
+ el.innerHTML=evs.length?evs.map(rowHtml).join(''):`<div class="empty"><div class="blob">${icon('bookmark',34)}</div><h4>Nothing saved yet</h4><p style="font-size:13px">Tap the bookmark on any event and it lands here.</p><button class="pill primary" style="flex:none;padding:13px 26px" onclick="setTab('list')">Browse events</button></div>`;
+ bindRows(el)}
+function toggleSave(id){saved.has(id)?saved.delete(id):saved.add(id);persist();
+ toast(saved.has(id)?'Saved to your list':'Removed from saved');
+ document.querySelectorAll(`.bk[data-bk="${id}"]`).forEach(b=>b.classList.toggle('on',saved.has(id)));
+ if(tab==='saved')renderSaved();
+ const d=document.getElementById('detail');if(d.classList.contains('open')&&d.dataset.id===id)renderDetail(id)}
+let toastTmr;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTmr);toastTmr=setTimeout(()=>t.classList.remove('on'),1600)}
+
+// ---- detail ----
+function renderDetail(id){const ev=byId(id),c=CATS[ev.cat],d=document.getElementById('detail');d.dataset.id=id;
+ d.innerHTML=`<div class="hero" style="background:${c.tint}"><button class="backbtn" id="dback">${icon('back',20)}</button><div class="blob" style="background:white;color:${c.ink}">${icon(c.ic,56)}</div></div>
+ <div class="dbody"><span class="tg ${['career','clubs','shows'].includes(ev.cat)?'warm':''}" style="font-size:11.5px">${CATS[ev.cat].label}</span>
+ <h1>${ev.t}</h1>
+ <div class="drow"><span class="ic">${icon('clock',18)}</span><span>${ev.day}, ${ev.date}<small>${ev.time}</small></span></div>
+ <div class="drow"><span class="ic">${icon('pin',18)}</span><span>${ev.v}<small>${dist(ev.ll)} mi from the Diag</small></span></div>
+ <div class="tagrow">${ev.tags.map(t=>`<span class="tg">${t}</span>`).join('')}</div>
+ <p style="font-size:14px;line-height:1.6;margin-top:10px">${ev.desc}</p>
+ <button class="pill ghost" id="dask" style="width:100%;margin-top:6px">${icon('spark',16)} Ask Scout about this</button></div>
+ <div class="dactions"><button class="pill ghost" id="ddir">${icon('nav',16)} Directions</button><button class="pill primary" id="dsave">${icon('bookmark',16)} ${saved.has(id)?'Saved':'Save'}</button></div>`;
+ d.querySelector('#dback').onclick=closeDetail;
+ d.querySelector('#dsave').onclick=()=>toggleSave(id);
+ d.querySelector('#ddir').onclick=()=>{closeDetail();setTab('map');mapCat='all';chipRow(document.getElementById('mapchips'),'all',setMapCat);drawPins();renderRail();setTimeout(()=>{map.invalidateSize();selectEvent(id,true);map.flyTo(ev.ll,17)},80)};
+ d.querySelector('#dask').onclick=()=>{closeDetail();setTab('chat');setTimeout(()=>sendMsg(`Tell me about ${ev.t}`),350)}}
+function openDetail(id){renderDetail(id);document.getElementById('detail').classList.add('open')}
+function closeDetail(){document.getElementById('detail').classList.remove('open')}
+
+// ---- chat ----
+const msgs=document.getElementById('msgs');
+let chatStarted=false;
+const QUICK=['What\u2019s on this weekend?','Anything career related?','Something fun tonight','Where can I volunteer?'];
+document.getElementById('qchips').innerHTML=QUICK.map(q=>`<button class="qc">${q}</button>`).join('');
+document.getElementById('qchips').onclick=e=>{const b=e.target.closest('.qc');if(b)sendMsg(b.textContent)};
+function initChat(){if(chatStarted)return;chatStarted=true;
+ aiSay('Hey! I\u2019m Scout \u2014 I know every event happening around campus this week. Ask me for recommendations, or tap a suggestion below.')}
+function bubble(cls,html){const el=document.createElement('div');el.className='msg '+cls;el.innerHTML=html;msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight;return el}
+function evCard(ev){const c=CATS[ev.cat];const el=document.createElement('div');el.className='evchip';
+ el.innerHTML=`<div class="evic" style="width:42px;height:42px;border-radius:15px;background:${c.tint};color:${c.ink}">${icon(c.ic,19)}</div><div style="min-width:0"><h5>${ev.t}</h5><div class="meta">${ev.day} ${ev.date} · ${ev.time.split(' – ')[0]} · ${dist(ev.ll)} mi</div></div>`;
+ el.onclick=()=>openDetail(ev.id);msgs.appendChild(el);msgs.scrollTop=msgs.scrollHeight}
+function aiSay(text,ids=[]){const tp=bubble('ai','<span class="dots"><i></i><i></i><i></i></span>');
+ setTimeout(()=>{tp.innerHTML=text;ids.forEach(id=>evCard(byId(id)));msgs.scrollTop=msgs.scrollHeight},700+Math.random()*500)}
+function reply(q){q=q.toLowerCase();
+ const named=EVENTS.find(e=>q.includes(e.t.toLowerCase()));
+ if(named)return aiSay(`${named.t} is ${named.day} ${named.date} at ${named.time.split(' – ')[0]}, at ${named.v} — about ${dist(named.ll)} mi from you. ${named.desc.split('. ')[0]}. Want me to pull up anything similar?`,[named.id]);
+ if(/career|job|intern|resume|network/.test(q))return aiSay('Two good ones for that. The Career Expo on Friday is the big one — 120+ employers. If you want prep first, the Resume Clinic on Tuesday does 1:1 reviews.',['expo','resume']);
+ if(/weekend|saturday|sunday/.test(q))return aiSay('The weekend is packed. My top picks: Jazz Ensemble Night on Saturday, the IM Soccer Finals in the afternoon, and the Arb River Cleanup on Sunday morning if you want fresh air.',['jazz','soccer','arb']);
+ if(/tonight|today/.test(q))return aiSay('Tonight you\u2019ve got two: the Robotics Club Open House at 6 (free pizza), and the Improv Comedy Show at 9 — a fun back-to-back, they\u2019re 2 minutes apart.',['robot','improv']);
+ if(/volunteer|service|help out/.test(q))return aiSay('Two options this week: the Arb River Cleanup on Sunday morning, or the Food Pantry Pack-a-thon on Monday — 45-minute walk-in shifts, so it fits between classes.',['arb','pantry']);
+ if(/music|show|concert|fun|dance|party/.test(q))return aiSay('For a fun night: Salsa Club Social on Saturday (beginner lesson first hour), Jazz Ensemble Night at Hill, or the Improv Show tonight.',['salsa','jazz','improv']);
+ if(/sport|game|match|watch/.test(q))return aiSay('Volleyball vs. Ohio State on Friday is the one to catch — rivalry game, students free. The IM Soccer Finals on Saturday are a good hang too.',['vball','soccer']);
+ if(/study|class|learn|workshop|python|tutor/.test(q))return aiSay('The Python for Data Workshop on Monday is beginner-friendly and laptops are provided. There\u2019s also the Midterm Study Jam on Sunday with free coffee and tutors.',['python','study']);
+ if(/free|cheap|food/.test(q))return aiSay('Most events this week are free. For free food specifically: Robotics Open House tonight has pizza, and the Study Jam on Sunday runs free coffee until midnight.',['robot','study']);
+ if(/saved|my list/.test(q)){const s=[...saved];return s.length?aiSay(`You\u2019ve saved ${s.length} — here\u2019s what\u2019s coming up first.`,s.slice(0,3)):aiSay('Your saved list is empty so far. Tell me what you\u2019re into — music, sports, career stuff — and I\u2019ll suggest some.')}
+ aiSay('I can recommend by vibe — try \u201csomething fun tonight\u201d, \u201ccareer events\u201d, or \u201cwhere can I volunteer?\u201d. Or tell me what you\u2019re into and I\u2019ll match you.')}
+function sendMsg(text){if(!text.trim())return;bubble('me',text);document.getElementById('chatin').value='';setTimeout(()=>reply(text),200)}
+document.getElementById('sendbtn').onclick=()=>sendMsg(document.getElementById('chatin').value);
+document.getElementById('chatin').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg(e.target.value)});
+
+// ---- fit phone to viewport ----
+function fit(){const s=Math.min(1,(innerHeight-24)/852,(innerWidth-24)/393);document.getElementById('phone').style.transform=`scale(${s})`}
+addEventListener('resize',fit);fit();
+</script>
+</body>
+</html>
