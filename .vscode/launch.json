@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to packager (Hermes)",
+      "cwd": "${workspaceFolder}",
+      "type": "reactnativedirect",
+      "request": "attach"
+    },
+    {
+      "name": "Run Android (Hermes)",
+      "cwd": "${workspaceFolder}",
+      "type": "reactnativedirect",
+      "request": "launch",
+      "platform": "android"
+    }
+  ]
+}

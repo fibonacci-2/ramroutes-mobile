@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import BuildingEventsModal from '../components/BuildingEventsModal';
 import { subscribeToBuildings } from '../services/buildings';
 import { Building, hasCoordinates } from '../types/Building';
 
@@ -14,6 +15,7 @@ const INITIAL_REGION = {
 
 export default function MapScreen() {
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
 
   useEffect(() => subscribeToBuildings(setBuildings), []);
 
@@ -31,9 +33,11 @@ export default function MapScreen() {
             key={building.id}
             coordinate={{ latitude: building.lat, longitude: building.lng }}
             title={building.buildingName}
+            onPress={() => setSelectedBuilding(building)}
           />
         ))}
       </MapView>
+      <BuildingEventsModal building={selectedBuilding} onClose={() => setSelectedBuilding(null)} />
     </View>
   );
 }
