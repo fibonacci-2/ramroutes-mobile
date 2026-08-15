@@ -13,7 +13,10 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "RamRoutes uses your location to show events happening at buildings near you.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "RamRoutes uses your location in the background to notify you about events at buildings you're near.",
-        "UIBackgroundModes": ["location", "remote-notification"]
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ]
       },
       "config": {
         "googleMapsApiKey": "REPLACE_WITH_IOS_GOOGLE_MAPS_API_KEY"
@@ -52,7 +55,9 @@
           "locationAlwaysAndWhenInUsePermission": "RamRoutes uses your location to show events happening at buildings near you."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-font",
+      "expo-splash-screen"
     ]
   }
 }

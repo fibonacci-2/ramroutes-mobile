@@ -8,6 +8,24 @@ buildings, no avatars/Rams, no game layer. Same Firebase project
 and `users` Firestore collections, same Auth users, nothing duplicated on
 the backend.
 
+## Tag Taxonomy
+
+| Tag | Matches keywords in event name/description |
+|---|---|
+| `academic` | study, research, lecture, workshop, seminar, tutoring, thesis, gre, lsat |
+| `sports` | game, match, tournament, intramural, practice, volleyball, soccer, basketball, lacrosse |
+| `arts` | concert, performance, dance, art, exhibit, theater, tango, music, gallery, recital |
+| `social` | mixer, social, hangout, networking, party, welcome, gathering, meetup |
+| `food` | food, tasting, dining, cook, bake, cuisine, restaurant, eat |
+| `career` | career, internship, job, resume, interview, professional, employer, recruiting |
+| `cultural` | culture, heritage, international, diversity, identity, pride, tradition, multicultural |
+| `spiritual` | prayer, faith, chapel, meditation, spiritual, mass, worship |
+| `tech` | hack, hackathon, code, programming, software, ai, data, esports, gaming |
+| `fitness` | workout, run, hike, yoga, gym, exercise, wellness, cardio |
+| `mental-health` | mental health, counseling, therapy, self-care, stress relief, anxiety, depression, mindfulness, meditation, wellbeing, support group |
+
+---
+
 ## Why this is feasible quickly
 
 The Unity project already does almost everything this app needs, just in
