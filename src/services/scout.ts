@@ -68,6 +68,10 @@ export function scoutReply(query: string, events: EventWithLocation[], savedEven
     return tryTags(['food'], 'For free food specifically, these are tagged food.') ??
       { text: "Nothing tagged food yet - most events list their cost in the description though.", eventIds: [] };
   }
+  if (/greek|fraternity|sorority|rush|frat/.test(q)) {
+    return tryTags(['greek life'], 'These are tagged greek life.') ??
+      { text: "Nothing tagged greek life right now.", eventIds: [] };
+  }
   if (/saved|my list/.test(q)) {
     if (savedEventIds.length === 0) {
       return { text: 'Your saved list is empty so far. Tell me what you’re into - music, sports, career stuff - and I’ll suggest some.', eventIds: [] };

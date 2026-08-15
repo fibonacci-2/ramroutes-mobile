@@ -132,6 +132,22 @@ const PATHS: Record<string, ReactElement> = {
       <Path d="M8 12h8" />
     </>
   ),
+  // Classical column/pediment glyph for "greek life" - a real tag on
+  // building-events docs that isn't in the mockup's category set either.
+  greekLife: (
+    <>
+      <Path d="M4 7l8-4 8 4" />
+      <Path d="M4 7h16" />
+      <Path d="M6 21V9M10 21V9M14 21V9M18 21V9" />
+      <Path d="M4 21h16" />
+    </>
+  ),
+  user: (
+    <>
+      <Circle cx="12" cy="8" r="4" />
+      <Path d="M4 21c0-4.42 3.58-7 8-7s8 2.58 8 7" />
+    </>
+  ),
 };
 
 export type IconName = keyof typeof PATHS;

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from '../components/Icon';
 import { primaryTagStyle } from '../constants/tagStyles';
-import { EventWithLocation, useEvents } from '../hooks/useEvents';
+import { EventWithLocation } from '../hooks/useEvents';
 import { scoutReply } from '../services/scout';
 import { color, font, radius, shadow } from '../theme';
 import { byId } from '../utils/byId';
@@ -18,14 +18,14 @@ let nextId = 0;
 const newId = () => `${Date.now()}-${nextId++}`;
 
 type Props = {
-  userId: string | undefined;
+  events: EventWithLocation[];
+  userId: string;
   seedMessage: string | null;
   onSeedConsumed: () => void;
   onOpenDetail: (eventId: string) => void;
 };
 
-export default function ScoutScreen({ userId, seedMessage, onSeedConsumed, onOpenDetail }: Props) {
-  const events = useEvents();
+export default function ScoutScreen({ events, userId, seedMessage, onSeedConsumed, onOpenDetail }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList<Message>>(null);
@@ -63,7 +63,7 @@ export default function ScoutScreen({ userId, seedMessage, onSeedConsumed, onOpe
     setInput('');
     scrollToEnd();
     setTimeout(() => {
-      const savedIds = userId ? events.filter((e) => e.interestedUsers?.includes(userId)).map((e) => e.id) : [];
+      const savedIds = events.filter((e) => e.interestedUsers?.includes(userId)).map((e) => e.id);
       const reply = scoutReply(text, events, savedIds);
       aiSay(reply.text, reply.eventIds);
     }, 200);

@@ -1,38 +1,46 @@
-import { getAuth } from '@react-native-firebase/auth';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import EventDetailSheet from '../components/EventDetailSheet';
 import Icon, { IconName } from '../components/Icon';
-import { useEvents } from '../hooks/useEvents';
+import { EventWithLocation, useEvents } from '../hooks/useEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius } from '../theme';
 import { byId } from '../utils/byId';
 import EventsListScreen from './EventsListScreen';
 import MapScreen from './MapScreen';
+import PreferencesScreen from './PreferencesScreen';
 import SavedScreen from './SavedScreen';
 import ScoutScreen from './ScoutScreen';
 
-type Tab = 'map' | 'list' | 'chat' | 'saved';
+type Tab = 'map' | 'list' | 'chat' | 'profile';
 
 const TABS: { id: Tab; icon: IconName; label: string }[] = [
   { id: 'map', icon: 'map', label: 'Map' },
   { id: 'list', icon: 'cal', label: 'Events' },
   { id: 'chat', icon: 'chat', label: 'Scout' },
-  { id: 'saved', icon: 'bookmark', label: 'Saved' },
+  { id: 'profile', icon: 'user', label: 'You' },
 ];
 
-export default function RootShell() {
+type Props = {
+  userId: string;
+  schoolId: string;
+  onChangeSchool: () => void;
+};
+
+export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
   const [tab, setTab] = useState<Tab>('map');
   const [detailEventId, setDetailEventId] = useState<string | null>(null);
   const [chatSeed, setChatSeed] = useState<string | null>(null);
+  const [directionsEventId, setDirectionsEventId] = useState<string | null>(null);
+  const [savedVisible, setSavedVisible] = useState(false);
 
-  const events = useEvents();
+  const events = useEvents(schoolId);
   const userLocation = useUserLocation();
-  const userId = getAuth().currentUser?.uid;
 
   const detailEvent = detailEventId ? byId(events, detailEventId) ?? null : null;
-  const detailSaved = !!userId && !!detailEvent?.interestedUsers?.includes(userId);
+  const detailSaved = !!detailEvent?.interestedUsers?.includes(userId);
+  const directionsToEvent = directionsEventId ? byId(events, directionsEventId) ?? null : null;
 
   const openDetail = (eventId: string) => setDetailEventId(eventId);
   const closeDetail = () => setDetailEventId(null);
@@ -43,20 +51,37 @@ export default function RootShell() {
     setChatSeed(`Tell me about ${eventName}`);
   };
 
+  const showDirections = (event: EventWithLocation) => {
+    closeDetail();
+    setTab('map');
+    setDirectionsEventId(event.id);
+  };
+
   return (
     <View style={styles.root}>
       <View style={styles.screen}>
-        {tab === 'map' && <MapScreen onOpenDetail={openDetail} onSearchPress={() => setTab('list')} />}
-        {tab === 'list' && <EventsListScreen userId={userId} onOpenDetail={openDetail} />}
+        {tab === 'map' && (
+          <MapScreen
+            events={events}
+            onOpenDetail={openDetail}
+            onSearchPress={() => setTab('list')}
+            directionsTo={directionsToEvent}
+            onClearDirections={() => setDirectionsEventId(null)}
+          />
+        )}
+        {tab === 'list' && <EventsListScreen events={events} userId={userId} onOpenDetail={openDetail} />}
         {tab === 'chat' && (
           <ScoutScreen
+            events={events}
             userId={userId}
             seedMessage={chatSeed}
             onSeedConsumed={() => setChatSeed(null)}
             onOpenDetail={openDetail}
           />
         )}
-        {tab === 'saved' && <SavedScreen userId={userId} onOpenDetail={openDetail} onBrowseEvents={() => setTab('list')} />}
+        {tab === 'profile' && (
+          <PreferencesScreen schoolId={schoolId} onOpenSaved={() => setSavedVisible(true)} onChangeSchool={onChangeSchool} />
+        )}
       </View>
 
       <View style={styles.tabBar}>
@@ -78,9 +103,28 @@ export default function RootShell() {
         userLocation={userLocation}
         saved={detailSaved}
         onClose={closeDetail}
-        onToggleSave={() => userId && detailEvent && setInterested(detailEvent.id, userId, !detailSaved)}
+        onToggleSave={() => detailEvent && setInterested(detailEvent.id, userId, !detailSaved)}
         onAskScout={askScout}
+        onDirections={showDirections}
       />
+
+      {savedVisible && (
+        <Modal visible animationType="slide" onRequestClose={() => setSavedVisible(false)}>
+          <SavedScreen
+            events={events}
+            userId={userId}
+            onOpenDetail={(eventId) => {
+              setSavedVisible(false);
+              openDetail(eventId);
+            }}
+            onBrowseEvents={() => {
+              setSavedVisible(false);
+              setTab('list');
+            }}
+            onClose={() => setSavedVisible(false)}
+          />
+        </Modal>
+      )}
     </View>
   );
 }

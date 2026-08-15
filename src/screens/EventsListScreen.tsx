@@ -4,18 +4,18 @@ import CategoryChips from '../components/CategoryChips';
 import EventRow from '../components/EventRow';
 import Icon from '../components/Icon';
 import { Tag } from '../constants/tags';
-import { useEvents } from '../hooks/useEvents';
+import { EventWithLocation } from '../hooks/useEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius, shadow } from '../theme';
 
 type Props = {
-  userId: string | undefined;
+  events: EventWithLocation[];
+  userId: string;
   onOpenDetail: (eventId: string) => void;
 };
 
-export default function EventsListScreen({ userId, onOpenDetail }: Props) {
-  const events = useEvents();
+export default function EventsListScreen({ events, userId, onOpenDetail }: Props) {
   const userLocation = useUserLocation();
   const [category, setCategory] = useState<Tag | 'all'>('all');
   const [query, setQuery] = useState('');
@@ -63,9 +63,9 @@ export default function EventsListScreen({ userId, onOpenDetail }: Props) {
           <EventRow
             event={item}
             userLocation={userLocation}
-            saved={!!userId && !!item.interestedUsers?.includes(userId)}
+            saved={!!item.interestedUsers?.includes(userId)}
             onPress={() => onOpenDetail(item.id)}
-            onToggleSave={() => userId && setInterested(item.id, userId, !item.interestedUsers?.includes(userId))}
+            onToggleSave={() => setInterested(item.id, userId, !item.interestedUsers?.includes(userId))}
           />
         )}
       />

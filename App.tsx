@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import RootShell from './src/screens/RootShell';
+import AppGate from './src/screens/AppGate';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,7 +26,7 @@ export default function App() {
 
   return (
     <>
-      <RootShell />
+      <AppGate />
       <StatusBar style="dark" />
     </>
   );

@@ -1,4 +1,5 @@
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { primaryTagStyle } from '../constants/tagStyles';
 import { EventWithLocation } from '../hooks/useEvents';
 import { UserLocation } from '../hooks/useUserLocation';
@@ -14,29 +15,48 @@ type Props = {
   onClose: () => void;
   onToggleSave: () => void;
   onAskScout: (eventName: string) => void;
+  onDirections: (event: EventWithLocation) => void;
 };
 
-export default function EventDetailSheet({ event, userLocation, saved, onClose, onToggleSave, onAskScout }: Props) {
+export default function EventDetailSheet({
+  event,
+  userLocation,
+  saved,
+  onClose,
+  onToggleSave,
+  onAskScout,
+  onDirections,
+}: Props) {
+  // Keyed by event id (not a plain boolean) so a broken image on one event
+  // doesn't stick around and hide a working image on the next one opened.
+  const [failedImageId, setFailedImageId] = useState<string | null>(null);
+
   if (!event) return null;
 
   const style = primaryTagStyle(event.tags);
   const dist = userLocation ? `${distanceMiles(userLocation, event).toFixed(1)} mi from you` : null;
   const primaryTag = event.tags?.[0];
-
-  const openDirections = () => {
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`);
-  };
+  const showImage = !!event.imageUrl && failedImageId !== event.id;
 
   return (
     <Modal visible animationType="slide" onRequestClose={onClose}>
       <View style={styles.screen}>
         <View style={[styles.hero, { backgroundColor: style.tint }]}>
+          {showImage ? (
+            <Image
+              source={{ uri: event.imageUrl }}
+              style={styles.heroImage}
+              resizeMode="cover"
+              onError={() => setFailedImageId(event.id)}
+            />
+          ) : (
+            <View style={styles.heroBlob}>
+              <Icon name={style.icon} size={56} color={style.ink} strokeWidth={2} />
+            </View>
+          )}
           <Pressable style={styles.backBtn} onPress={onClose}>
             <Icon name="back" size={20} color={color.text} />
           </Pressable>
-          <View style={styles.heroBlob}>
-            <Icon name={style.icon} size={56} color={style.ink} strokeWidth={2} />
-          </View>
         </View>
 
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
@@ -78,7 +98,7 @@ export default function EventDetailSheet({ event, userLocation, saved, onClose, 
         </ScrollView>
 
         <View style={styles.actions}>
-          <Pressable style={[styles.pill, styles.pillGhost]} onPress={openDirections}>
+          <Pressable style={[styles.pill, styles.pillGhost]} onPress={() => onDirections(event)}>
             <Icon name="nav" size={16} color={color.text} />
             <Text style={styles.pillGhostText}>Directions</Text>
           </Pressable>
@@ -94,7 +114,8 @@ export default function EventDetailSheet({ event, userLocation, saved, onClose, 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.bg },
-  hero: { height: 210, alignItems: 'center', justifyContent: 'center' },
+  hero: { height: 210, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  heroImage: StyleSheet.absoluteFill,
   backBtn: {
     position: 'absolute',
     top: 56,

@@ -11,11 +11,16 @@ export type EventWithLocation = BuildingEvent & { lat: number; lng: number };
 // location by buildingName. Events whose building has no coordinates yet
 // (Phase 0 - only 8/29 buildings seeded) are dropped, same as MapScreen
 // already does for building markers.
-export function useEvents(): EventWithLocation[] {
+//
+// schoolId scopes this to the signed-in student's campus - building-events
+// docs have no schoolId of their own, so scoping happens for free through the
+// join below: subscribeToBuildings(schoolId) only returns that school's
+// buildings, so events whose buildingName isn't in that set never match.
+export function useEvents(schoolId: string | null): EventWithLocation[] {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [events, setEvents] = useState<BuildingEvent[]>([]);
 
-  useEffect(() => subscribeToBuildings(setBuildings), []);
+  useEffect(() => subscribeToBuildings(schoolId, setBuildings), [schoolId]);
   useEffect(() => subscribeToAllBuildingEvents(setEvents), []);
 
   return useMemo(() => {

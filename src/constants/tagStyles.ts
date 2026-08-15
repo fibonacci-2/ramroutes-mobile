@@ -20,6 +20,7 @@ export const TAG_STYLES: Record<Tag, TagStyle> = {
   tech: { icon: 'tech', pinBg: color.accent2_800, tint: color.accent2_200, ink: color.accent2_800 },
   fitness: { icon: 'fitness', pinBg: color.accent2_400, tint: color.accent2_200, ink: color.accent2_800 },
   'mental-health': { icon: 'heart', pinBg: color.accent2_900, tint: color.accent2_200, ink: color.accent2_800 },
+  'greek life': { icon: 'greekLife', pinBg: color.accent900, tint: color.accent2_200, ink: color.accent2_800 },
 };
 
 // An event's "primary" tag for pin/icon purposes - our schema allows several

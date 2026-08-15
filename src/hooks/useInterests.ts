@@ -14,7 +14,7 @@ export function orderedTags(tags: Set<Tag>): Tag[] {
   return AVAILABLE_TAGS.filter((tag) => tags.has(tag));
 }
 
-// Shared between the InterestsDropdown (which writes the selection) and the
+// Shared between PreferencesScreen (which writes the selection) and the
 // building events list (which filters by it), so both stay in sync off one
 // Firestore-backed source of truth instead of duplicating the load/save logic.
 export function useInterests() {
