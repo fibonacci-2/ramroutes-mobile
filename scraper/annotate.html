@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Event Tag Annotator</title>
+</head>
+<body>
+
+<h1>Event Tag Annotator</h1>
+<p>Select a event's real tags in the dropdown (ctrl/cmd-click or shift-click to select multiple). Click Save to write everything back to eval-sample.json.</p>
+<button id="save-top">Save</button>
+<span id="status"></span>
+<hr>
+
+<div id="events">Loading...</div>
+
+<hr>
+<button id="save-bottom">Save</button>
+<span id="status-bottom"></span>
+
+<script>
+let tags = [];
+let events = [];
+
+async function load() {
+  const res = await fetch('/api/eval-sample');
+  const data = await res.json();
+  if (data.error) {
+    document.getElementById('events').textContent = data.error;
+    return;
+  }
+  tags = data.tags;
+  events = data.events;
+  render();
+}
+
+function render() {
+  const container = document.getElementById('events');
+  container.innerHTML = '';
+
+  events.forEach((event, index) => {
+    const wrapper = document.createElement('div');
+
+    const title = document.createElement('h3');
+    title.textContent = '#' + event.id + ' [' + event.month + '] ' + event.name;
+    wrapper.appendChild(title);
+
+    const dateP = document.createElement('p');
+    dateP.textContent = event.date;
+    wrapper.appendChild(dateP);
+
+    const descP = document.createElement('p');
+    descP.textContent = event.description;
+    wrapper.appendChild(descP);
+
+    // const hintP = document.createElement('p');
+    // hintP.textContent = 'Heuristic tags (reference only, not pre-selected): ' +
+    //   ((event.heuristicTags && event.heuristicTags.length) ? event.heuristicTags.join(', ') : '(none)');
+    // wrapper.appendChild(hintP);
+
+    const label = document.createElement('label');
+    label.textContent = 'Tags: ';
+    wrapper.appendChild(label);
+
+    const select = document.createElement('select');
+    select.multiple = true;
+    select.size = tags.length;
+    select.dataset.index = index;
+
+    tags.forEach(function (tag) {
+      const option = document.createElement('option');
+      option.value = tag;
+      option.textContent = tag;
+      if (event.manualTags && event.manualTags.indexOf(tag) !== -1) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+
+    wrapper.appendChild(select);
+    wrapper.appendChild(document.createElement('hr'));
+    container.appendChild(wrapper);
+  });
+}
+
+function collect() {
+  const selects = document.querySelectorAll('#events select');
+  selects.forEach(function (select) {
+    const index = Number(select.dataset.index);
+    const selected = Array.from(select.selectedOptions).map(function (o) { return o.value; });
+    events[index].manualTags = selected;
+  });
+}
+
+async function save() {
+  collect();
+  const res = await fetch('/api/eval-sample', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ events: events })
+  });
+  const result = await res.json();
+  const message = result.saved
+    ? 'Saved ' + result.saved + ' events at ' + new Date().toLocaleTimeString()
+    : 'Save failed: ' + (result.error || 'unknown error');
+  document.getElementById('status').textContent = message;
+  document.getElementById('status-bottom').textContent = message;
+}
+
+document.getElementById('save-top').addEventListener('click', save);
+document.getElementById('save-bottom').addEventListener('click', save);
+
+load();
+</script>
+
+</body>
+</html>

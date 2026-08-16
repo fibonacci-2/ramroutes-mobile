@@ -4,9 +4,9 @@ import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 // Lucide-style icon set, stroke-width 2.75 per design/ds/readme.md's icon
 // guidance. Paths for map/cal/chat/bookmark/search/clock/pin/brief/trophy/
 // users/music/heart/book/spark/send/back/nav/locate are copied verbatim from
-// design/Quad Campus Events.html's IC table. academic/food/cultural/spiritual/
-// tech/fitness have no equivalent in the mockup (it only defined 6 categories,
-// not our 11-tag taxonomy) - those five are original approximations.
+// design/Quad Campus Events.html's IC table. academic/food/cultural/spiritual
+// have no equivalent in the mockup (it only defined 6 categories, not our
+// 10-tag taxonomy) - those four are original approximations.
 const PATHS: Record<string, ReactElement> = {
   map: (
     <>
@@ -119,19 +119,6 @@ const PATHS: Record<string, ReactElement> = {
     </>
   ),
   spiritual: <Path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-2-1-3-1-5 2 1 3 4 3 6a5 5 0 0 1-10 0c0-5 3-6 5-9z" />,
-  tech: (
-    <>
-      <Rect x="6" y="6" width="12" height="12" rx="2" />
-      <Path d="M9 2v3M12 2v3M15 2v3M9 19v3M12 19v3M15 19v3M2 9h3M2 12h3M2 15h3M19 9h3M19 12h3M19 15h3" />
-    </>
-  ),
-  fitness: (
-    <>
-      <Path d="M4 9v6M20 9v6" />
-      <Path d="M8 7v10M16 7v10" />
-      <Path d="M8 12h8" />
-    </>
-  ),
   // Classical column/pediment glyph for "greek life" - a real tag on
   // building-events docs that isn't in the mockup's category set either.
   greekLife: (

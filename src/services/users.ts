@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 // Anonymous sign-in (useAuth.ts) gives every install a uid but no Firestore
@@ -15,6 +16,8 @@ export async function ensureUserProfile(userId: string): Promise<void> {
   await setDoc(ref, {
     bio: '',
     interests: [],
+    major: '',
+    classYear: null,
     schoolId: null,
     createdAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
@@ -54,4 +57,39 @@ export async function getUserBio(userId: string): Promise<string> {
 
 export async function updateUserBio(userId: string, bio: string): Promise<void> {
   await updateDoc(doc(getFirestore(), 'users', userId), { bio });
+}
+
+// Explicit signal (declared major + class year) alongside the inferred one
+// (tag interests, bio free text) - lets recommendations key off "I'm a
+// political science major" even before the student has tagged/saved anything.
+export async function getUserMajor(userId: string): Promise<string> {
+  const snapshot = await getDoc(doc(getFirestore(), 'users', userId));
+  const major = snapshot.data()?.major;
+  return typeof major === 'string' ? major : '';
+}
+
+export async function updateUserMajor(userId: string, major: string): Promise<void> {
+  await updateDoc(doc(getFirestore(), 'users', userId), { major });
+}
+
+export async function getUserClassYear(userId: string): Promise<string | null> {
+  const snapshot = await getDoc(doc(getFirestore(), 'users', userId));
+  const classYear = snapshot.data()?.classYear;
+  return typeof classYear === 'string' ? classYear : null;
+}
+
+export async function updateUserClassYear(userId: string, classYear: string): Promise<void> {
+  await updateDoc(doc(getFirestore(), 'users', userId), { classYear });
+}
+
+// Same notificationToken/tokenLastUpdated/platform fields the Unity app's
+// FirebaseManager.UpdateUserProfileToken writes to users/{uid}. Unity also
+// mirrors the token to a devices/{deviceId} collection, but useAuth's stable
+// per-install uid already serves as that device key here, so one write covers it.
+export async function updateUserNotificationToken(userId: string, token: string): Promise<void> {
+  await updateDoc(doc(getFirestore(), 'users', userId), {
+    notificationToken: token,
+    tokenLastUpdated: serverTimestamp(),
+    platform: Platform.OS,
+  });
 }

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from '../components/Icon';
+import { CLASS_YEARS } from '../constants/classYears';
 import { AVAILABLE_TAGS } from '../constants/tags';
 import { TAG_STYLES } from '../constants/tagStyles';
 import { useInterests } from '../hooks/useInterests';
+import { useStudentProfile } from '../hooks/useStudentProfile';
 import { useUserBio } from '../hooks/useUserBio';
 import { subscribeToSchools } from '../services/schools';
 import { color, font, radius, shadow } from '../theme';
@@ -15,9 +17,10 @@ type Props = {
   onChangeSchool: () => void;
 };
 
-export default function PreferencesScreen({ schoolId, onOpenSaved, onChangeSchool }: Props) {
+export default function PreferencesScreen({ schoolId, onChangeSchool }: Props) {
   const { selected, toggleTag } = useInterests();
   const { bio, setBio, saveBio } = useUserBio();
+  const { major, setMajor, saveMajor, classYear, setClassYear } = useStudentProfile();
   const [schools, setSchools] = useState<School[]>([]);
 
   useEffect(() => subscribeToSchools(setSchools), []);
@@ -42,15 +45,35 @@ export default function PreferencesScreen({ schoolId, onOpenSaved, onChangeSchoo
           </View>
         </Pressable>
 
-        <Pressable style={styles.menuRow} onPress={onOpenSaved}>
-          <View style={styles.menuRowIcon}>
-            <Icon name="bookmark" size={18} color={color.accent700} />
-          </View>
-          <Text style={styles.menuRowLabel}>Saved events</Text>
-          <View style={styles.menuRowChevron}>
-            <Icon name="back" size={16} color={color.neutral500} />
-          </View>
-        </Pressable>
+        {/* Saved events row hidden for now - doesn't fit well alongside the
+            About you / Interests sections added below. onOpenSaved stays in
+            Props so RootShell's wiring (and the Saved modal itself) is
+            untouched - re-add the row here to bring it back. */}
+
+        <Text style={styles.sectionTitle}>About you</Text>
+        <Text style={styles.sectionSubtitle}>Helps us point you toward the right resources and events.</Text>
+        <TextInput
+          style={styles.majorInput}
+          placeholder="Major (e.g. Political Science)"
+          placeholderTextColor={color.neutral500}
+          value={major}
+          onChangeText={setMajor}
+          onBlur={() => saveMajor(major)}
+        />
+        <View style={styles.chipGrid}>
+          {CLASS_YEARS.map((year) => {
+            const active = classYear === year;
+            return (
+              <Pressable
+                key={year}
+                style={[styles.chip, active && { backgroundColor: color.accent200, borderColor: color.accent200 }]}
+                onPress={() => setClassYear(year)}
+              >
+                <Text style={[styles.chipText, active && { color: color.accent800 }]}>{year}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         <Text style={styles.sectionTitle}>Interests</Text>
         <Text style={styles.sectionSubtitle}>Pick what you're into - we'll use this to recommend events.</Text>
@@ -131,6 +154,17 @@ const styles = StyleSheet.create({
     ...shadow.sm,
   },
   chipText: { fontFamily: font.bodyBold, fontSize: 12.5, color: color.text },
+  majorInput: {
+    backgroundColor: 'white',
+    borderRadius: radius.md,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontFamily: font.body,
+    fontSize: 14,
+    color: color.text,
+    marginBottom: 12,
+    ...shadow.sm,
+  },
   bioInput: {
     backgroundColor: 'white',
     borderRadius: radius.md,

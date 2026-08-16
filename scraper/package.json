@@ -1,0 +1,15 @@
+{
+  "name": "gwu-events-scraper",
+  "version": "1.0.0",
+  "description": "Scrapes GWU campus labs events and matches them to Firestore buildings",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "scrape": "node scrape.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "firebase-admin": "^12.6.0",
+    "playwright": "^1.48.0"
+  }
+}

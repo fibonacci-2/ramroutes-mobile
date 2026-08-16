@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GWU Event Scraper</title>
+  <style>
+    body { font-family: monospace; max-width: 960px; margin: 24px auto; padding: 0 16px; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+    th { background: #f0f0f0; }
+    details { margin: 6px 0; }
+    summary { cursor: pointer; }
+    .tag-confirmed { color: green; font-weight: bold; }
+    .tag-review    { color: #b36200; }
+    .tag-score     { color: #888; font-size: 0.85em; }
+    #log { color: #555; font-size: 0.85em; min-height: 1.2em; }
+  </style>
+</head>
+<body>
+
+<h2>GWU Event Scraper</h2>
+
+<!-- Step 0 -->
+<h3>School</h3>
+<label for="schoolSelect">Upload under:</label>
+&nbsp;<select id="schoolSelect" onchange="onSchoolChange()"><option value="">Loading schools...</option></select>
+&nbsp;<span id="schoolLog" style="color:#b36200;"></span>
+
+<hr>
+
+<!-- Step 1 -->
+<h3>1. Scrape Events</h3>
+<button id="scrapeBtn" onclick="startScrape()">Scrape Events</button>
+&nbsp;<span id="log"></span>
+<div id="eventSection" style="display:none; margin-top:12px;">
+  <b id="eventCount"></b>
+  <div id="eventTable"></div>
+</div>
+
+<hr>
+
+<!-- Step 2 -->
+<h3>2. Match to Buildings</h3>
+<button id="matchBtn" disabled onclick="runMatch()">Load Buildings &amp; Match</button>
+<div id="matchSection" style="margin-top:12px;"></div>
+
+<hr>
+
+<!-- Step 3 -->
+<h3>3. Reconcile &amp; Upload</h3>
+<button id="previewBtn" disabled onclick="runPreview()">Preview Upload</button>
+<div id="previewSection" style="margin-top:12px;"></div>
+
+<hr>
+
+<!-- Step 4 -->
+<h3>4. Compute Recommendations</h3>
+<button id="recommendBtn" onclick="runRecommend()">Run Recommendations</button>
+&nbsp;<span id="recommendLog"></span>
+
+<script>
+  let scrapedEvents = [];
+  let matchedBuildings = [];
+  let schools = [];
+  let selectedSchool = null; // { schoolId, schoolName }
+
+  // --- Step 0: School selection ---
+
+  async function loadSchools() {
+    const select = document.getElementById('schoolSelect');
+    const log = document.getElementById('schoolLog');
+    try {
+      const res = await fetch('/api/schools');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      schools = data.schools;
+
+      if (!schools.length) {
+        select.innerHTML = '<option value="">No schools found</option>';
+        log.textContent = 'No schools found in Firestore.';
+        return;
+      }
+
+      select.innerHTML = '<option value="">Select a school…</option>'
+        + schools.map(s => `<option value="${esc(s.schoolId)}">${esc(s.schoolName)}</option>`).join('');
+      log.textContent = '';
+    } catch (err) {
+      select.innerHTML = '<option value="">Failed to load schools</option>';
+      log.textContent = 'Error: ' + err.message;
+    }
+  }
+
+  function onSchoolChange() {
+    const select = document.getElementById('schoolSelect');
+    const school = schools.find(s => s.schoolId === select.value);
+    selectedSchool = school || null;
+  }
+
+  function requireSchool() {
+    if (!selectedSchool) {
+      alert('Select a school first.');
+      return false;
+    }
+    return true;
+  }
+
+  loadSchools();
+
+  // --- Step 1: Scrape ---
+
+  function startScrape() {
+    const btn = document.getElementById('scrapeBtn');
+    const log = document.getElementById('log');
+    btn.disabled = true;
+    log.textContent = 'Starting scraper...';
+    scrapedEvents = [];
+    document.getElementById('eventSection').style.display = 'none';
+    document.getElementById('matchBtn').disabled = true;
+    document.getElementById('matchSection').innerHTML = '';
+
+    const es = new EventSource('/api/scrape');
+
+    es.onmessage = (e) => {
+      const { type, payload } = JSON.parse(e.data);
+
+      if (type === 'progress') {
+        log.textContent = payload;
+      } else if (type === 'done') {
+        es.close();
+        scrapedEvents = payload;
+        log.textContent = `Done — ${scrapedEvents.length} events found.`;
+        renderEvents(scrapedEvents);
+        btn.disabled = false;
+        document.getElementById('matchBtn').disabled = false;
+      } else if (type === 'error') {
+        es.close();
+        log.textContent = 'Error: ' + payload;
+        btn.disabled = false;
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      log.textContent = 'Connection error.';
+      btn.disabled = false;
+    };
+  }
+
+  function renderEvents(events) {
+    document.getElementById('eventCount').textContent =
+      `${events.length} events scraped:`;
+
+    // Summarise unique locations
+    const locations = {};
+    events.forEach(e => {
+      const loc = e.location || '(none)';
+      locations[loc] = (locations[loc] || 0) + 1;
+    });
+
+    let html = '<table><tr><th>#</th><th>Name</th><th>Date</th><th>Location (raw)</th></tr>';
+    events.forEach((e, i) => {
+      html += `<tr>
+        <td>${i + 1}</td>
+        <td>${esc(e.name)}</td>
+        <td>${esc(e.date || '')}</td>
+        <td>${esc(e.location || '(none)')}</td>
+      </tr>`;
+    });
+    html += '</table>';
+
+    // Unique location summary
+    const sortedLocs = Object.entries(locations).sort((a, b) => b[1] - a[1]);
+    html += `<br><b>Unique locations (${sortedLocs.length}):</b><br>`;
+    html += '<table><tr><th>Location</th><th>Events</th></tr>';
+    sortedLocs.forEach(([loc, count]) => {
+      html += `<tr><td>${esc(loc)}</td><td>${count}</td></tr>`;
+    });
+    html += '</table>';
+
+    document.getElementById('eventTable').innerHTML = html;
+    document.getElementById('eventSection').style.display = 'block';
+  }
+
+  // --- Step 2: Match ---
+
+  async function runMatch() {
+    if (!requireSchool()) return;
+
+    const btn = document.getElementById('matchBtn');
+    const section = document.getElementById('matchSection');
+    btn.disabled = true;
+    section.innerHTML = 'Loading buildings and running match...';
+
+    try {
+      const res = await fetch('/api/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ events: scrapedEvents, schoolId: selectedSchool.schoolId }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        throw new Error(error);
+      }
+      const data = await res.json();
+      renderMatches(data);
+    } catch (err) {
+      section.innerHTML = 'Error: ' + esc(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderMatches({ buildings, unmatched, buildingCount, buildingDebug }) {
+    let html = '';
+
+    // --- Debug: raw buildings from Firestore ---
+    html += `<details><summary><b>Firestore buildings (${buildingCount}) — click to inspect IDs</b></summary>`;
+    html += '<table><tr><th>doc id</th><th>buildingName</th><th>keywords found</th></tr>';
+    buildingDebug.forEach(b => {
+      const warn = b.keywordCount === 0 ? ' style="background:#fff0f0"' : '';
+      html += `<tr${warn}><td>${esc(b.id)}</td><td>${esc(b.buildingName)}</td><td>${b.keywordCount === 0 ? '⚠ none' : b.keywordCount}</td></tr>`;
+    });
+    html += '</table></details><br>';
+
+    // --- Matched buildings ---
+    const totalMatched = buildings.reduce(
+      (n, b) => n + b.matched.length, 0
+    );
+    html += `<b>Buildings with matches: ${buildings.length} &nbsp;|&nbsp; Events placed: ${totalMatched}</b><br><br>`;
+
+    buildings.forEach(b => {
+      html += `<details open>
+        <summary>
+          <b>${esc(b.buildingName)}</b>
+          &nbsp;<span class="tag-score">[${esc(b.schoolName)}]</span>
+          &nbsp;— ${b.matched.length} event(s)
+        </summary>`;
+
+      html += '<table><tr><th>Name</th><th>Scraped location</th><th>Keyword hit</th></tr>';
+      b.matched.forEach(e => {
+        html += `<tr>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.location)}</td>
+          <td class="tag-confirmed">${esc(e.matchedKeyword)}</td>
+        </tr>`;
+      });
+      html += '</table>';
+
+      html += '</details>';
+    });
+
+    // --- Unmatched ---
+    html += `<br><b>Unmatched events: ${unmatched.length}</b>`;
+    if (unmatched.length) {
+      html += '<table><tr><th>Name</th><th>Scraped location</th></tr>';
+      unmatched.forEach(e => {
+        html += `<tr>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.location || '(none)')}</td>
+        </tr>`;
+      });
+      html += '</table>';
+    }
+
+    document.getElementById('matchSection').innerHTML = html;
+    matchedBuildings = buildings;
+    document.getElementById('previewBtn').disabled = false;
+  }
+
+  // --- Step 3: Preview & Upload ---
+
+  async function runPreview() {
+    if (!requireSchool()) return;
+
+    const btn = document.getElementById('previewBtn');
+    const section = document.getElementById('previewSection');
+    btn.disabled = true;
+    section.innerHTML = 'Reconciling data...';
+
+    try {
+      const res = await fetch('/api/upload?preview=true', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buildings: matchedBuildings,
+          schoolId: selectedSchool.schoolId,
+          schoolName: selectedSchool.schoolName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      renderPreview(data);
+    } catch (err) {
+      section.innerHTML = 'Error: ' + esc(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderPreview(data) {
+    const { total, ready, duplicates, withIssues, events } = data;
+
+    let html = `<b>${total} events total &nbsp;|&nbsp; `
+      + `<span style="color:green">${ready} ready</span> &nbsp;|&nbsp; `
+      + `<span style="color:#888">${duplicates} duplicate (skip)</span> &nbsp;|&nbsp; `
+      + `<span style="color:#b36200">${withIssues} have issues</span></b>`;
+
+    html += `&nbsp;&nbsp;<button onclick="runUpload()">Upload ${ready + withIssues} events</button><br><br>`;
+
+    html += '<table><tr>'
+      + '<th>Event</th><th>Building</th><th>Date</th>'
+      + '<th>Tags</th><th>Desc</th><th>Image</th><th>Status</th>'
+      + '</tr>';
+
+    events.forEach(e => {
+      let status, rowStyle = '';
+      if (e.duplicate) {
+        status = '<span style="color:#888">duplicate</span>';
+        rowStyle = ' style="opacity:0.5"';
+      } else if (e.issues.length === 0) {
+        status = '<span style="color:green">ready</span>';
+      } else {
+        status = `<span style="color:#b36200">${e.issues.join(', ')}</span>`;
+      }
+
+      html += `<tr${rowStyle}>
+        <td>${esc(e.eventName)}</td>
+        <td>${esc(e.buildingName)}</td>
+        <td>${esc(e.date || '')}</td>
+        <td>${e.tags && e.tags.length ? esc(e.tags.join(', ')) : '—'}</td>
+        <td>${e.description ? '✓' : '—'}</td>
+        <td>${e.imageUrl ? '✓' : '—'}</td>
+        <td>${status}</td>
+      </tr>`;
+    });
+
+    html += '</table>';
+    document.getElementById('previewSection').innerHTML = html;
+  }
+
+  async function runUpload() {
+    if (!requireSchool()) return;
+
+    const section = document.getElementById('previewSection');
+    const existing = section.innerHTML;
+    section.innerHTML = 'Uploading to Firestore...';
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          buildings: matchedBuildings,
+          schoolId: selectedSchool.schoolId,
+          schoolName: selectedSchool.schoolName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      let html = `<b>Upload complete: ${data.uploaded} uploaded, ${data.skipped} skipped (duplicates)</b>`;
+      if (data.errors.length) {
+        html += `<br><span style="color:red">${data.errors.length} errors:</span><ul>`;
+        data.errors.forEach(e => {
+          html += `<li>${esc(e.event)}: ${esc(e.error)}</li>`;
+        });
+        html += '</ul>';
+      }
+      section.innerHTML = html;
+    } catch (err) {
+      section.innerHTML = existing;
+      alert('Upload error: ' + err.message);
+    }
+  }
+
+  // --- Step 4: Recommendations ---
+
+  function runRecommend() {
+    const btn = document.getElementById('recommendBtn');
+    const log = document.getElementById('recommendLog');
+    btn.disabled = true;
+    log.textContent = 'Starting...';
+
+    const es = new EventSource('/api/recommend');
+
+    es.onmessage = (e) => {
+      const { type, payload } = JSON.parse(e.data);
+      if (type === 'progress') {
+        log.textContent = payload;
+      } else if (type === 'done') {
+        es.close();
+        log.textContent = `Done — ${payload.usersUpdated} users updated `
+          + `(${payload.taggedEvents} tagged events, ${payload.usersProcessed} users with interests).`;
+        btn.disabled = false;
+      } else if (type === 'error') {
+        es.close();
+        log.textContent = 'Error: ' + payload;
+        btn.disabled = false;
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      log.textContent = 'Connection error.';
+      btn.disabled = false;
+    };
+  }
+
+  function esc(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+</script>
+</body>
+</html>

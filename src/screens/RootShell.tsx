@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import EventDetailSheet from '../components/EventDetailSheet';
 import Icon, { IconName } from '../components/Icon';
 import { EventWithLocation, useEvents } from '../hooks/useEvents';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius } from '../theme';
@@ -37,6 +38,7 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
 
   const events = useEvents(schoolId);
   const userLocation = useUserLocation();
+  usePushNotifications(userId, schoolId);
 
   const detailEvent = detailEventId ? byId(events, detailEventId) ?? null : null;
   const detailSaved = !!detailEvent?.interestedUsers?.includes(userId);

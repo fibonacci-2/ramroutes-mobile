@@ -1,0 +1,405 @@
+Location	Events
+Newman Center	23
+Online	17
+Kogan Plaza	15
+Student Health Center, Conference Room 1 (G27)	13
+Student Health Center, G104	13
+University Student Center	12
+Lerner Health and Wellness Center	10
+USC 433A	10
+Hand chapel	9
+USC Continental Ballroom	7
+Munson Hall	7
+District B206	7
+USC Room 404	7
+Corcoran Hall	7
+The Center for Interfaith and Spiritual Life Lounge	7
+USC 311	7
+Potomac Square	7
+USC 405	7
+Duques Hall	7
+The Newman Center	6
+Funger Hall	6
+USC Interfaith Lounge	6
+MC 538 - University Student Center	5
+MSSC 506 (USC 5th Floor)	5
+USC Amphitheater	5
+OAS Townhouse	5
+Square 80	5
+District House B-114	5
+Edward R Murrow Park	5
+G St Park	5
+Milken Institute School of Public Health	5
+District House Lounge	5
+MSSC Multipurpose Room	5
+Dance Studio - District House	5
+The Center for Interfaith and Spiritual Life	4
+Somers Hall	4
+USC 401	4
+USC 309	4
+Multipurpose Room - MSSC	4
+University Student Center Room 404	4
+Madison Hall	4
+University Yard	3
+Shenkman Hall Lobby	3
+Student Center 301	3
+Tonic at Quigley's	3
+COR 103	3
+USC Grand Ballroom	3
+Student Center 302	3
+Lisner Auditorium	3
+MVC Pelham Commons	3
+South Hall Lobby	3
+Amsterdam 706	3
+Fulbright Hall Lobby	3
+USC Presentation Space (Across from Chaat House)	3
+Amsterdam Student Lounge	3
+COR 101A	3
+Amdam Lounge	3
+SEH B1270	3
+Columbian Square	3
+Somers Hall	3
+Corcoran Hall 101A	3
+Fulbright Hall	3
+Somers Hall Basement	3
+Charles E Smith Center	3
+St Stephen-Martyr Church	2
+USC 1st Floor	2
+Post Hall	2
+Tonic Lounge	2
+USC 403	2
+G Street Park	2
+St. Stephen Martyr Catholic Church	2
+2nd Floor of Hillel	2
+University Student Center in front of the elevators	2
+Thurston Hall, 6th Floor	2
+MVC Quad	2
+Saint Patrick Catholic Church	2
+University Student Center	2
+Florence Hand Chapel (by West Hall and the courts)	2
+District House B114	2
+Shenkman Lobby	2
+Madison Hall Office	2
+Strong Hall Lobby	2
+First Floor Community Lounge, Shenkman Hall	2
+Munson's Basement	2
+Duques 359	2
+Potomac House	2
+Corcoran Hall Room 104	2
+Thurston Hall	2
+So What Else Inc. Rockville MD	2
+For Five Coffee Roasters	2
+Lafayette Hall Lobby	2
+District House B206	2
+Thurston Penthouse	2
+University Student Center Room 309	2
+MSSC	2
+Lerner Health & Wellness Center	2
+West Hall	2
+Bell Hall 104	2
+FSK 8TH FLOOR LOUNGE	2
+Duques Hall Room 255	2
+University Student Center, Continental Ballroom	2
+District Lounge	2
+City View Room	2
+District house dance studio	2
+Tasher Great Room	2
+USC 3rd Floor Continental Ballroom	2
+USC 415	2
+Phillips Hall 413	2
+GW Law School	2
+Monroe Hall Room 253	2
+Newman Catholic Student Center	2
+Webb Building	2
+L201	2
+Thurston Hall 7th Floor Lounge	2
+NPHC House	2
+Anniversary Park	2
+The City View Room	2
+Monroe Hall 111	2
+Funger Hall Room 207	2
+University Student Center MSSC	2
+University Student Center, Room 310	2
+rooftop 1959E	2
+University Student Center (Various Locations)	1
+Grand Ballroom	1
+The Hive Bar	1
+USC 5th Floor	1
+Sixty Vines	1
+Meeting Location: USC 2nd Floor Lobby	1
+Meeting location: USC 2nd Floor Lobby	1
+MSSC Lounge	1
+Kogan Plaza Outdoor Classroom	1
+MSSC 506, 5th Floor, University Student Center	1
+District House Study Lounge	1
+Various Locations	1
+USC Columbian Square	1
+Potomac Square	1
+I-House Basement Lounge	1
+University Student Center Room 405	1
+USC LL01	1
+Monroe Hall, Room 113	1
+Somers Hall 3rd Floor	1
+Mad Hatter	1
+District House -- South Lobby (H St.)	1
+Shenkman Hall	1
+Student Center	1
+Amsterdam Lobby	1
+George Washington University	1
+The State Room	1
+USC	1
+Multicultural Student Services Center	1
+Guthridge Hall Basement	1
+USC 1ST FLOOR	1
+JBKO Entrance Lobby	1
+FSK Hall	1
+Center for Interfaith and Spiritual Life Office - Room 240	1
+AMC Georgetown 14	1
+Thurston 7th Floor	1
+Beach Volleyball Courts @ Lincoln Memorial	1
+Tabling Row	1
+District House B1 H Street Table	1
+GW University Student Center	1
+Potomac House - 2nd Floor Lounge	1
+JFK Hockey Fields; National Mall	1
+GW Foggy Bottom Metro	1
+Blackbox Theatre, B2 Level West Hall MVC	1
+USC 3rd floor Grand Ballroom	1
+Public Bar Live	1
+Betts Theater	1
+Carter Barron Amphitheater	1
+FSK Hall 5th Floor	1
+University Student Center (3rd floor), Grand Ballroom	1
+TBD	1
+Dacha Beer Garden	1
+USC ll01	1
+Columbian Sqaure	1
+Georgetown AMC	1
+Duques 251	1
+Potomac 2nd-Floor Lounge	1
+GW's Outdoor Classroom	1
+Strong Hall Student Lounge	1
+University Student Center Amphitheater	1
+Grand Ballroom (USC 3rd Floor)	1
+Funger 108	1
+G-Street Park	1
+FSK Hall 5th floor lounge	1
+Potomac Hall (lower Level)	1
+Shenkman First Floor Lounge	1
+Monroe Hall Rm 113	1
+Mt. Vernon Campus	1
+Corcoran Hall	1
+MSSC MPR (USC 5th Floor)	1
+Table	1
+SEH Lobby	1
+Lobby South	1
+Post Hall - Mount Vernon Campus	1
+USC Colombian Square	1
+Phillips Hall B156	1
+Shenkman Hall	1
+St. Stephen-Martyr Catholic Church	1
+National Mall	1
+23rd and Constitution on the National Mall	1
+Funger Rm. 108	1
+West Hall Entrance & 2nd floor lounge	1
+Science and Engineering Hall	1
+Lerner Health & Wellnes Center	1
+The Vern Courts	1
+USC LL01 (down 2 levels)	1
+Student Center 401	1
+Corcoran Hall 104	1
+Monroe Hall B33	1
+Fulbright Hall Basement	1
+Northeastern University Arlington Campus	1
+University Student Center Room 401	1
+Lerner Recreation Center	1
+SEVA Test Kitchen - 1810 K St	1
+1959 E ST- ROOFTOP	1
+Lerner Health & Wellness Center, 4th Floor	1
+Ric and Dawn Duquès Hall Rm 151	1
+Corcoran Hall, room 104	1
+Eckles Library	1
+Ric and Dawn Duquès Hall Room 453	1
+USC 310	1
+Great Hall, University Student Center	1
+Corcoran Hall Rm 101A	1
+SMPA 302	1
+Fulbright Hall Lounge	1
+District House	1
+Phillips 348	1
+Funger Hall Room 108	1
+Directly in front of the Hillsides dorm halls	1
+Elliot B12	1
+Pelham Commons (MVC)	1
+520 Funger Hall	1
+Panera Bread in USC	1
+Somers hall	1
+USC Amphitheater (University Student Center Amphitheater)	1
+ICC Auditorium	1
+University Student Center, Room 405	1
+Multipurpose Room, (MSSC) Multicultural Student Services Center	1
+GW Law School - Stuart 101	1
+Post Hall at GW-Mount Vernon Campus	1
+Funger Hall 208	1
+West Hall Black Box Theatre	1
+Charles E. Smith Center	1
+Duques & Funger Halls	1
+Phillips Hall Rm 348	1
+Kogan Plaza to Roosevelt Island	1
+USC first floor near Panera	1
+Swahili Village	1
+Kogan Plaza then Constitution Gardens	1
+Library of Congress	1
+USC Room 311	1
+Bell 107	1
+&Pizza Hotel Hive	1
+SMPA 309	1
+Eckles Auditorium	1
+USC 401	1
+Milken Native Garden	1
+Madison Hall Lobby, Lafayette Hall Lobby, & Guthridge Hall Lobby	1
+Duques 255	1
+Munson Lobby	1
+Elliot Rm 113	1
+USC Lower Level 01A	1
+Washington Hilton Hotel	1
+Rome Hall 204	1
+USC Great Hall	1
+L402	1
+Dakota Front Lobby	1
+Post Hall	1
+Monroe 253	1
+Thurston Hall 7th Floor Lounge	1
+District House	1
+USC Room 403	1
+GW Textile Museum	1
+Hotel Hive Rooftop	1
+University Student Center Room 311	1
+Duques 151	1
+West Hall 2nd Floor Lounge	1
+Thurston Hall & Dining Hall	1
+Elliott City View Room (7th Floor)	1
+I house Lobby	1
+GW Foggy Bottom Metro	1
+Sachi Nightclub	1
+university student center	1
+Elliott school city view room	1
+Thomas Jefferson Memorial	1
+Elliott City View Room 7th Floor	1
+Elliott School of International Affairs	1
+USC 1st floor	1
+Somers Hall 2nd Floor Kitchen	1
+University Student Center - Third Floor Continental Ballroom	1
+West Hall Entrance	1
+University Student Center (USC) 311	1
+University Student Center, Room 311	1
+The GW Museum and The Textile Museum	1
+MSSC MPR (5th floor of USC)	1
+Continental Ballroom, University Student Center	1
+District House 1st floor lounge	1
+LL101	1
+Potomac Hall (Lower Level)	1
+USC 308	1
+School of Media & Public Affairs	1
+Amphitheater	1
+FSK Lobby	1
+Dharmic Prayer and Meditation Space	1
+University Student Center, Room 307	1
+Amsterdam Hall - Walk to the T.B.	1
+Dominican House of Studies	1
+District House -- South Lobby	1
+Iron Age Korean BBQ	1
+Rosebar	1
+Puttery D.C.	1
+The Commodore - Community Room, 2055 15th St N Arlington, VA 22201 United States	1
+The National Mall	1
+Washington Monument	1
+Epic Yoga DC	1
+Duques Hall - Room 251	1
+University Student Center Grand Ballroom	1
+1st Floor of the GW Law School building	1
+MSSC Gallery Lounge	1
+West 1st Floor Study Room	1
+SEH 7040	1
+Shenkman Hall First Floor Lounge	1
+Milken Room 101	1
+The Dakota	1
+Elliot School of International Affairs	1
+Elliott School	1
+Hall of Government	1
+District Hall Study lounge	1
+JBKO Hall	1
+District House Room 118	1
+Lafayette Basement	1
+Milken Institute Auditorium	1
+University Student Center (USC) Room 308	1
+Duques Hall Room 155	1
+Fsk hall	1
+DUQUES 552	1
+Duques Hall Room 353	1
+University Student Center (USC) 310	1
+OAS Townhouse	1
+Trump–Kennedy Center Washington, DC	1
+Elliott School B12	1
+FNGR 209	1
+Smith Art Pavilion	1
+University Student Center 1st floor	1
+GWU Great Hall	1
+District House (DH B114)	1
+Charles E. Smith Center - Tin Tabernacle	1
+1957 E Street	1
+Duques Hall - Room 155	1
+UNIVERSITY CENTER ROOM LOWER LEVEL ROOM LL 01C	1
+*	1
+USC Grand Ball room	1
+ADPalace	1
+GW MVC Vex Stop	1
+Foggy Bottom Metro	1
+Devine Theater -- Davis Arts Center -- Georgetown University	1
+Kogan Plaza	1
+Thurston Hall	1
+Rosebar Lounge	1
+Jack Morton Auditorium	1
+Anniversary Park	1
+University Student Center 405	1
+Cloyd Heck Marvin Center	1
+MVC Vex Stop (12pm Departure) to Eastern Market (225 7th Street SE)	1
+MVC Lacrosse Field	1
+Columbian Plaza - 1st Floor Across Panera in the University Student Center	1
+The Elliott School of International Affairs - State Room	1
+Corcoran Hall, 101A	1
+International House Basement	1
+University Student Center- Room 307	1
+Strong Kitchen (1st floor)	1
+USC First Floor	1
+University Student Center, Room 302	1
+Potomac Basement Lounge	1
+Thurston Dining Hall	1
+8th Floor Lounge	1
+Bell 309	1
+Ric and Dawn Duquès Hall Rm 150	1
+Tacombi	1
+GW Law	1
+USC Columbian Square	1
+Multipurpose Room	1
+MSSC - USC 5th Floor	1
+MSSC Gallery Space	1
+1959 E ST- ROOFTOP LOUNGE	1
+University Student Center, Room 309	1
+Guthridge Basement	1
+Monroe 250	1
+University Student Center Table	1
+JW Marriott Hotel	1
+Hall of Government Room 101	1
+University Student Center rm. 308	1
+Johnny Pistolas	1
+Betts Theatre, Student Center	1
+Elliott School of International Affairs Room 308	1
+District B114	1
+Strong Hall Rooftop Lounge	1
+Monroe Hall Rm 111	1
+USC - Columbian Square	1
+Corcoran Hall 204	1
+University Student Center 402	1
+Munson Lobby	1
+GW USC, LL01

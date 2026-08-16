@@ -51,8 +51,8 @@ export function scoutReply(query: string, events: EventWithLocation[], savedEven
       { text: "No sports events tagged yet.", eventIds: [] };
   }
   if (/study|class|learn|workshop|python|tutor/.test(q)) {
-    return tryTags(['academic', 'tech'], 'These are tagged academic or tech - good for that.') ??
-      { text: "Nothing tagged academic/tech yet.", eventIds: [] };
+    return tryTags(['academic'], 'These are tagged academic - good for that.') ??
+      { text: "Nothing tagged academic yet.", eventIds: [] };
   }
   if (/free|cheap|food/.test(q)) {
     return tryTags(['food'], 'For free food specifically, these are tagged food.') ??
