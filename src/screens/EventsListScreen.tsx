@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import CategoryChips from '../components/CategoryChips';
+import EventRailCard, { RAIL_CARD_WIDTH } from '../components/EventRailCard';
 import EventRow from '../components/EventRow';
 import Icon from '../components/Icon';
 import { Tag } from '../constants/tags';
 import { EventWithLocation } from '../hooks/useEvents';
+import { useInterests } from '../hooks/useInterests';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius, shadow } from '../theme';
+import { rankByTagOverlap } from '../utils/personalization';
 
 type Props = {
   events: EventWithLocation[];
@@ -17,6 +20,7 @@ type Props = {
 
 export default function EventsListScreen({ events, userId, onOpenDetail }: Props) {
   const userLocation = useUserLocation();
+  const { selected: interests } = useInterests();
   const [category, setCategory] = useState<Tag | 'all'>('all');
   const [query, setQuery] = useState('');
 
@@ -24,6 +28,11 @@ export default function EventsListScreen({ events, userId, onOpenDetail }: Props
   const filtered = events
     .filter((e) => category === 'all' || e.tags?.includes(category))
     .filter((e) => !q || `${e.eventName} ${e.buildingName} ${(e.tags ?? []).join(' ')}`.toLowerCase().includes(q));
+
+  // Ranked purely by tag overlap with the student's picked interests - same
+  // scoring Scout and Admin/scraper/recommend.js use. Independent of the
+  // search/category filters above since it's a curated section, not a filter.
+  const forYou = rankByTagOverlap(events, interests, 10);
 
   return (
     <View style={styles.screen}>
@@ -50,6 +59,25 @@ export default function EventsListScreen({ events, userId, onOpenDetail }: Props
         data={filtered}
         keyExtractor={(e) => e.id}
         style={styles.list}
+        ListHeaderComponent={
+          forYou.length > 0 ? (
+            <View style={styles.forYouSection}>
+              <Text style={styles.forYouTitle}>For you</Text>
+              <FlatList
+                horizontal
+                data={forYou}
+                keyExtractor={(e) => e.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.forYouRail}
+                snapToInterval={RAIL_CARD_WIDTH + 10}
+                decelerationRate="fast"
+                renderItem={({ item }) => (
+                  <EventRailCard event={item} userLocation={userLocation} selected={false} onPress={() => onOpenDetail(item.id)} />
+                )}
+              />
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyBlob}>
@@ -93,6 +121,9 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontFamily: font.bodySemibold, fontSize: 14, color: color.text },
   chipsRow: { paddingHorizontal: 20, paddingVertical: 6 },
   list: { flex: 1 },
+  forYouSection: { paddingTop: 10, paddingBottom: 6 },
+  forYouTitle: { fontFamily: font.heading, fontSize: 18, color: color.text, paddingHorizontal: 20, marginBottom: 8 },
+  forYouRail: { gap: 10, paddingHorizontal: 20, alignItems: 'center' },
   empty: { alignItems: 'center', paddingTop: 70, paddingHorizontal: 40 },
   emptyBlob: {
     width: 96,

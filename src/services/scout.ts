@@ -1,18 +1,8 @@
 import { Tag } from '../constants/tags';
 import { EventWithLocation } from '../hooks/useEvents';
+import { rankByTagOverlap } from '../utils/personalization';
 
 export type ScoutReply = { text: string; eventIds: string[] };
-
-// score = number of tags in common - same overlap semantics as
-// Admin/scraper/recommend.js's scoreEvent(), reused here client-side.
-function topByTags(events: EventWithLocation[], tags: Tag[], limit = 3): EventWithLocation[] {
-  return events
-    .map((e) => ({ e, score: (e.tags ?? []).filter((t) => tags.includes(t as Tag)).length }))
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((x) => x.e);
-}
 
 // Ported from design/Quad Campus Events.html's reply() - same keyword-matched
 // canned responses, no LLM involved (see the design-hurdles note: this is a
@@ -35,7 +25,7 @@ export function scoutReply(query: string, events: EventWithLocation[], savedEven
   }
 
   const tryTags = (tags: Tag[], text: string): ScoutReply | null => {
-    const matches = topByTags(events, tags);
+    const matches = rankByTagOverlap(events, tags, 3);
     if (matches.length === 0) return null;
     return { text, eventIds: matches.map((e) => e.id) };
   };

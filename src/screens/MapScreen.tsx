@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import CategoryChips from '../components/CategoryChips';
+import EventMapCard from '../components/EventMapCard';
 import EventRailCard, { RAIL_CARD_WIDTH } from '../components/EventRailCard';
 import Icon from '../components/Icon';
 import { Tag } from '../constants/tags';
-import { primaryTagStyle } from '../constants/tagStyles';
 import { EventWithLocation } from '../hooks/useEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { mapStyle } from '../mapStyle';
@@ -111,7 +111,6 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
         showsMyLocationButton={false}
       >
         {visibleEvents.map((event) => {
-          const style = primaryTagStyle(event.tags);
           const selected = event.id === selectedId;
           return (
             <Marker
@@ -120,10 +119,9 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
               title={event.eventName}
               onPress={() => selectEvent(event.id)}
               anchor={{ x: 0.5, y: 1 }}
+              tracksViewChanges={selected}
             >
-              <View style={[styles.pin, { backgroundColor: style.pinBg }, selected && styles.pinSelected]}>
-                <Icon name={style.icon} size={15} color="white" strokeWidth={2.75} />
-              </View>
+              <EventMapCard event={event} selected={selected} />
             </Marker>
           );
         })}
@@ -229,17 +227,6 @@ const styles = StyleSheet.create({
     ...shadow.md,
   },
   directionsBannerText: { flex: 1, fontFamily: font.bodyBold, fontSize: 14, color: color.text },
-  pin: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 2.5,
-    borderColor: 'white',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadow.md,
-  },
-  pinSelected: { transform: [{ scale: 1.25 }] },
   locateBtn: {
     position: 'absolute',
     right: 14,
