@@ -65,6 +65,24 @@ function scoreEvent(event, interests, profileEmbedding) {
   return tagScore + RECOMMENDATION_LAMBDA * embScore;
 }
 
+// Recurring events (e.g. a weekly "Tango Practica") upload one Firestore doc
+// per occurrence, all sharing the same eventName - they score near-identically
+// against any given profile, so without this the top 10 could be the same
+// title repeated several times instead of 10 distinct events. Must run after
+// sorting by score and before slicing to the limit, so it keeps each name's
+// best-scoring occurrence and doesn't shrink the final count below the limit.
+function dedupeByName(scoredEvents) {
+  const seen = new Set();
+  const out = [];
+  for (const item of scoredEvents) {
+    const key = (item.eventName || "").trim().toLowerCase();
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 /**
  * Notify students at a school when a new building event is published there.
  * Triggers when a document is created in the building-events collection.
@@ -288,6 +306,13 @@ exports.recomputeRecommendationsOnProfileChange = onDocumentUpdated("users/{user
     const interests = Array.isArray(after.interests) ? after.interests : [];
     const hasProfileText = Boolean(after.major) || Boolean(after.bio);
 
+    if (!after.schoolId) {
+      // Mid-onboarding (AppGate blocks profile edits before schoolId is set
+      // in the normal flow, but this trigger fires on any users/{userId}
+      // write) - nothing sensible to recommend against yet.
+      return null;
+    }
+
     if (interests.length === 0 && !hasProfileText) {
       // Nothing left to recommend from (e.g. user cleared their bio/major
       // and had no tags) - clear a stale list instead of leaving it stuck.
@@ -297,12 +322,39 @@ exports.recomputeRecommendationsOnProfileChange = onDocumentUpdated("users/{user
       return null;
     }
 
-    logger.info("Profile changed, recomputing recommendations", { userId });
+    logger.info("Profile changed, recomputing recommendations", { userId, schoolId: after.schoolId });
 
-    const eventsSnap = await db.collection("building-events").get();
+    // Scoped to the user's own school - building-events has no cross-school
+    // relevance, and scoring against every school's catalog meant
+    // recommendedEvents could end up full of events from a school the user
+    // isn't even enrolled in (which the app's schoolId-scoped event
+    // subscription then can't resolve locally at all).
+    const eventsSnap = await db.collection("building-events").where("schoolId", "==", after.schoolId).get();
     const events = eventsSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((e) => Array.isArray(e.tags) && e.tags.length > 0);
+
+    // Embeddings live in a separate collection (see scraper/server.js's
+    // /api/upload) - the mobile app subscribes to building-events directly
+    // and never reads embeddings, so keeping them off that doc keeps its
+    // client-facing payload small. Merge them back in here for scoring -
+    // fetched by exact id (one batched round trip via getAll, not a full
+    // collection scan) so this only ever loads embeddings for the events
+    // already scoped to this user's school above. The earlier version did
+    // db.collection("event-embeddings").get() with no scoping at all, which
+    // pulled every school's embeddings into memory on every single profile
+    // edit and was the actual cause of this function's OOM - the
+    // building-events scoping alone didn't touch this second read.
+    const embeddingRefs = events.map((e) => db.collection("event-embeddings").doc(e.id));
+    const embeddingDocs = embeddingRefs.length ? await db.getAll(...embeddingRefs) : [];
+    const embeddingById = new Map();
+    embeddingDocs.forEach((snap, i) => {
+      if (snap.exists) embeddingById.set(events[i].id, snap.data().embedding);
+    });
+    for (const e of events) {
+      const embedding = embeddingById.get(e.id);
+      if (embedding) e.embedding = embedding;
+    }
 
     let profileEmbedding = null;
     const text = profileText(after);
@@ -317,12 +369,11 @@ exports.recomputeRecommendationsOnProfileChange = onDocumentUpdated("users/{user
       }
     }
 
-    const recommended = events
-      .map((e) => ({ id: e.id, score: scoreEvent(e, interests, profileEmbedding) }))
+    const scored = events
+      .map((e) => ({ id: e.id, eventName: e.eventName, score: scoreEvent(e, interests, profileEmbedding) }))
       .filter((e) => e.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-      .map((e) => e.id);
+      .sort((a, b) => b.score - a.score);
+    const recommended = dedupeByName(scored).slice(0, 10).map((e) => e.id);
 
     await event.data.after.ref.update({ recommendedEvents: recommended });
     logger.info("Recomputed recommendations", { userId, count: recommended.length });
