@@ -46,6 +46,15 @@ export async function updateUserInterests(userId: string, interests: string[]): 
   await updateDoc(doc(getFirestore(), 'users', userId), { interests });
 }
 
+// Written nightly by scraper/recommend.js's tagOverlap + λ·cosine(embedding)
+// scoring (PLAN.md's "personalization v2") - read-only from the app, never
+// written here, so client and server never race to update the same list.
+export async function getUserRecommendedEvents(userId: string): Promise<string[]> {
+  const snapshot = await getDoc(doc(getFirestore(), 'users', userId));
+  const recommended = snapshot.data()?.recommendedEvents;
+  return Array.isArray(recommended) ? recommended : [];
+}
+
 // Same "bio" field the Unity app reads/writes (UserService.cs's UpdateUserBio) -
 // reused here as the free-text "what are you looking for" preference field
 // rather than introducing a separate undocumented field.

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getAuth } from '@react-native-firebase/auth';
 import {
   getUserClassYear,
@@ -7,22 +7,53 @@ import {
   updateUserMajor,
 } from '../services/users';
 
+const SAVE_DELAY_MS = 600;
+
 // Mirrors useUserBio's load/save shape for the explicit major + class year
 // fields - declared alongside the inferred interest tags so recommendations
 // have a direct signal ("political science major") from day one.
+//
+// major is debounced + flushed on unmount for the same reason as bio -
+// RootShell unmounts PreferencesScreen on tab switch, so a blur-only save
+// can be dropped if the student switches tabs before blur fires. classYear
+// doesn't need this: it saves immediately on tap, no blur/debounce involved.
 export function useStudentProfile() {
-  const [major, setMajor] = useState('');
+  const [major, setMajorState] = useState('');
   const [classYear, setClassYearState] = useState<string | null>(null);
   const userId = getAuth().currentUser?.uid;
+  const pending = useRef<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userId) return;
-    getUserMajor(userId).then(setMajor);
+    getUserMajor(userId).then(setMajorState);
     getUserClassYear(userId).then(setClassYearState);
   }, [userId]);
 
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      if (userId && pending.current !== null) {
+        updateUserMajor(userId, pending.current);
+      }
+    };
+  }, [userId]);
+
+  const setMajor = (next: string) => {
+    setMajorState(next);
+    pending.current = next;
+    if (!userId) return;
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      updateUserMajor(userId, next);
+      pending.current = null;
+    }, SAVE_DELAY_MS);
+  };
+
   const saveMajor = (next: string) => {
-    setMajor(next);
+    setMajorState(next);
+    pending.current = null;
+    if (timer.current) clearTimeout(timer.current);
     if (userId) {
       updateUserMajor(userId, next);
     }

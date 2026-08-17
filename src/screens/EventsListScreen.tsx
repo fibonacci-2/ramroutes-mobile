@@ -7,10 +7,11 @@ import Icon from '../components/Icon';
 import { Tag } from '../constants/tags';
 import { EventWithLocation } from '../hooks/useEvents';
 import { useInterests } from '../hooks/useInterests';
+import { useRecommendedEvents } from '../hooks/useRecommendedEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius, shadow } from '../theme';
-import { rankByTagOverlap } from '../utils/personalization';
+import { rankRecommended } from '../utils/personalization';
 
 type Props = {
   events: EventWithLocation[];
@@ -21,6 +22,7 @@ type Props = {
 export default function EventsListScreen({ events, userId, onOpenDetail }: Props) {
   const userLocation = useUserLocation();
   const { selected: interests } = useInterests();
+  const recommendedEventIds = useRecommendedEvents(userId);
   const [category, setCategory] = useState<Tag | 'all'>('all');
   const [query, setQuery] = useState('');
 
@@ -29,10 +31,11 @@ export default function EventsListScreen({ events, userId, onOpenDetail }: Props
     .filter((e) => category === 'all' || e.tags?.includes(category))
     .filter((e) => !q || `${e.eventName} ${e.buildingName} ${(e.tags ?? []).join(' ')}`.toLowerCase().includes(q));
 
-  // Ranked purely by tag overlap with the student's picked interests - same
-  // scoring Scout and Admin/scraper/recommend.js use. Independent of the
-  // search/category filters above since it's a curated section, not a filter.
-  const forYou = rankByTagOverlap(events, interests, 10);
+  // Prefers scraper/recommend.js's nightly tagOverlap + embedding-similarity
+  // ranking; falls back to local tag overlap if that hasn't run for this
+  // user yet. Independent of the search/category filters above since it's a
+  // curated section, not a filter.
+  const forYou = rankRecommended(events, recommendedEventIds, interests, 10);
 
   return (
     <View style={styles.screen}>
