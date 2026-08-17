@@ -36,6 +36,7 @@ export function rankRecommended(
   limit?: number
 ): EventWithLocation[] {
   if (recommendedEventIds.length > 0) {
+    console.log("recs list", recommendedEventIds.length, "events", events.length, "tags", tags);
     const byId = new Map(events.map((e) => [e.id, e]));
     const ranked = recommendedEventIds
       .map((id) => byId.get(id))

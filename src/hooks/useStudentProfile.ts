@@ -7,7 +7,10 @@ import {
   updateUserMajor,
 } from '../services/users';
 
-const SAVE_DELAY_MS = 600;
+// Same delay as useUserBio, for the same reason: long enough that a typing
+// pause doesn't count as "done", since each save recomputes profileHash and
+// fires functions/index.js's recompute trigger.
+const SAVE_DELAY_MS = 2000;
 
 // Mirrors useUserBio's load/save shape for the explicit major + class year
 // fields - declared alongside the inferred interest tags so recommendations
@@ -16,7 +19,8 @@ const SAVE_DELAY_MS = 600;
 // major is debounced + flushed on unmount for the same reason as bio -
 // RootShell unmounts PreferencesScreen on tab switch, so a blur-only save
 // can be dropped if the student switches tabs before blur fires. classYear
-// doesn't need this: it saves immediately on tap, no blur/debounce involved.
+// doesn't need this: it saves immediately on tap, no blur/debounce involved,
+// and (unlike bio/major/interests) isn't part of profileHash at all.
 export function useStudentProfile() {
   const [major, setMajorState] = useState('');
   const [classYear, setClassYearState] = useState<string | null>(null);

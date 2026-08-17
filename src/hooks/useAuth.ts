@@ -15,6 +15,7 @@ export function useAuth() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
+        console.log("user id ", user.uid)
       } else {
         signInAnonymously(auth).catch(setError);
       }

@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { getAuth } from '@react-native-firebase/auth';
 import { getUserBio, updateUserBio } from '../services/users';
 
-const SAVE_DELAY_MS = 600;
+// Long enough that a normal typing pause (thinking mid-sentence) doesn't
+// count as "done editing" - each save also recomputes profileHash, which
+// fires functions/index.js's recomputeRecommendationsOnProfileChange, so a
+// short delay meant one bio edit could trigger that (and an OpenRouter call)
+// several times over.
+const SAVE_DELAY_MS = 2000;
 
 // Debounced + flush-on-unmount instead of blur-only: RootShell renders
 // PreferencesScreen conditionally on the active tab ({tab === 'profile' &&

@@ -14,6 +14,7 @@ const {onSchedule} = require("firebase-functions/v2/scheduler");
 const {initializeApp} = require("firebase-admin/app");
 const {getMessaging} = require("firebase-admin/messaging");
 const logger = require("firebase-functions/logger");
+const {embedTexts, cosineSimilarity} = require("./embedder");
 
 // Initialize Firebase Admin SDK
 initializeApp();
@@ -42,6 +43,26 @@ setGlobalOptions({ maxInstances: 10 });
 // see usePushNotifications.ts (ramroutes-mobile) for the matching subscribe side.
 function schoolTopic(schoolId) {
   return `school-${schoolId}`;
+}
+
+// score = tagOverlap + λ·cosine(profile_emb, event_emb), λ = 0.5 - mirrors
+// scraper/recommend.js's scoring exactly (see PLAN.md's "personalization v2
+// (embeddings)" section). Duplicated rather than shared for the same reason
+// as embedder.js - functions/ and scraper/ are separate deployable projects.
+const RECOMMENDATION_LAMBDA = 0.5;
+
+function profileText(user) {
+  const parts = [user.major, user.bio, (user.interests || []).join(", ")].filter(Boolean);
+  return parts.join(". ");
+}
+
+function scoreEvent(event, interests, profileEmbedding) {
+  const tagScore = (event.tags || []).filter((t) => (interests || []).includes(t)).length;
+  const embScore =
+    profileEmbedding && Array.isArray(event.embedding)
+      ? cosineSimilarity(profileEmbedding, event.embedding)
+      : 0;
+  return tagScore + RECOMMENDATION_LAMBDA * embScore;
 }
 
 /**
@@ -235,6 +256,84 @@ exports.notifyEventImportBatch = onDocumentCreated("event-import-batches/{batchI
       batchId: event.params.batchId
     });
     throw error;
+  }
+});
+
+/**
+ * Recompute one user's recommendedEvents as soon as their profile actually
+ * changes, instead of waiting for scraper/recommend.js's nightly batch.
+ * Triggers on every users/{userId} write, but does real work only when
+ * profileHash differs - src/services/users.ts writes a fresh profileHash
+ * (a fingerprint of bio+major+interests) alongside every bio/major/interests
+ * update, so this is a single cheap field comparison rather than diffing
+ * three fields (and staying correct if more profile fields are added later).
+ *
+ * A single edit can still only produce one profileHash write per ~2s of
+ * inactivity per field - see the debounce in useUserBio/useStudentProfile/
+ * useInterests - so this doesn't need its own coalescing on top of that.
+ */
+exports.recomputeRecommendationsOnProfileChange = onDocumentUpdated("users/{userId}", async (event) => {
+  const userId = event.params.userId;
+  try {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+
+    if (!after.profileHash || before.profileHash === after.profileHash) {
+      return null;
+    }
+
+    const admin = require("firebase-admin");
+    const db = admin.firestore();
+
+    const interests = Array.isArray(after.interests) ? after.interests : [];
+    const hasProfileText = Boolean(after.major) || Boolean(after.bio);
+
+    if (interests.length === 0 && !hasProfileText) {
+      // Nothing left to recommend from (e.g. user cleared their bio/major
+      // and had no tags) - clear a stale list instead of leaving it stuck.
+      if (Array.isArray(after.recommendedEvents) && after.recommendedEvents.length > 0) {
+        await event.data.after.ref.update({ recommendedEvents: [] });
+      }
+      return null;
+    }
+
+    logger.info("Profile changed, recomputing recommendations", { userId });
+
+    const eventsSnap = await db.collection("building-events").get();
+    const events = eventsSnap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((e) => Array.isArray(e.tags) && e.tags.length > 0);
+
+    let profileEmbedding = null;
+    const text = profileText(after);
+    if (text) {
+      try {
+        [profileEmbedding] = await embedTexts([text]);
+      } catch (err) {
+        logger.warn("Profile embedding failed, falling back to tag-only scoring", {
+          userId,
+          error: err.message
+        });
+      }
+    }
+
+    const recommended = events
+      .map((e) => ({ id: e.id, score: scoreEvent(e, interests, profileEmbedding) }))
+      .filter((e) => e.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map((e) => e.id);
+
+    await event.data.after.ref.update({ recommendedEvents: recommended });
+    logger.info("Recomputed recommendations", { userId, count: recommended.length });
+    return null;
+  } catch (error) {
+    logger.error("Error recomputing recommendations on profile change", {
+      error: error.message,
+      userId
+    });
+    // Don't rethrow - a bad profile shouldn't retry-storm this trigger.
+    return null;
   }
 });
 

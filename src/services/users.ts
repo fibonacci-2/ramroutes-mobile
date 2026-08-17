@@ -19,9 +19,44 @@ export async function ensureUserProfile(userId: string): Promise<void> {
     major: '',
     classYear: null,
     schoolId: null,
+    profileHash: computeProfileHash('', '', []),
     createdAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
   });
+}
+
+// Cheap non-cryptographic fingerprint (FNV-1a) of the fields that drive
+// recommendations - not a security hash, just a short deterministic
+// change-detector. functions/index.js's recomputeRecommendationsOnProfileChange
+// trigger compares this single field instead of diffing bio/major/interests
+// individually, and stays correct if more recommendation-relevant fields get
+// added later. Interests are sorted first so toggling a tag off and back on
+// doesn't spuriously change the hash depending on array order.
+function computeProfileHash(bio: string, major: string, interests: string[]): string {
+  const input = `${bio}|${major}|${[...interests].sort().join(',')}`;
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+// Shared by updateUserBio/updateUserMajor/updateUserInterests below - each
+// only knows its own new value, so this reads the current doc to fill in the
+// other two fields before recomputing profileHash, then writes both the
+// change and the new hash in one update.
+async function updateProfileFields(
+  userId: string,
+  changes: Partial<{ bio: string; major: string; interests: string[] }>
+): Promise<void> {
+  const ref = doc(getFirestore(), 'users', userId);
+  const snapshot = await getDoc(ref);
+  const current = snapshot.data() ?? {};
+  const bio = changes.bio ?? (typeof current.bio === 'string' ? current.bio : '');
+  const major = changes.major ?? (typeof current.major === 'string' ? current.major : '');
+  const interests = changes.interests ?? (Array.isArray(current.interests) ? current.interests : []);
+  await updateDoc(ref, { ...changes, profileHash: computeProfileHash(bio, major, interests) });
 }
 
 export async function getUserSchoolId(userId: string): Promise<string | null> {
@@ -43,7 +78,7 @@ export async function getUserInterests(userId: string): Promise<string[]> {
 }
 
 export async function updateUserInterests(userId: string, interests: string[]): Promise<void> {
-  await updateDoc(doc(getFirestore(), 'users', userId), { interests });
+  await updateProfileFields(userId, { interests });
 }
 
 // Written nightly by scraper/recommend.js's tagOverlap + λ·cosine(embedding)
@@ -65,7 +100,7 @@ export async function getUserBio(userId: string): Promise<string> {
 }
 
 export async function updateUserBio(userId: string, bio: string): Promise<void> {
-  await updateDoc(doc(getFirestore(), 'users', userId), { bio });
+  await updateProfileFields(userId, { bio });
 }
 
 // Explicit signal (declared major + class year) alongside the inferred one
@@ -78,7 +113,7 @@ export async function getUserMajor(userId: string): Promise<string> {
 }
 
 export async function updateUserMajor(userId: string, major: string): Promise<void> {
-  await updateDoc(doc(getFirestore(), 'users', userId), { major });
+  await updateProfileFields(userId, { major });
 }
 
 export async function getUserClassYear(userId: string): Promise<string | null> {

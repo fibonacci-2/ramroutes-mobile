@@ -4,7 +4,7 @@ const path = require("path");
 
 const EVENTS_URL =
   "https://gwu.campuslabs.com/engage/events?showpastevents=true";
-const MAX_LOAD_MORE = 10;
+const MAX_LOAD_MORE = 50;
 const DESCRIPTION_CONCURRENCY = 20;
 
 // Each scrape writes its own timestamped file instead of overwriting a fixed
