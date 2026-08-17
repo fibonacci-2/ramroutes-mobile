@@ -5,14 +5,17 @@ const { scrapeEvents, timestampedEventsPath } = require("./scrape");
 const { matchAll } = require("./matcher");
 const { TAGS } = require("./tagger");
 const { tagEventsWithModel } = require("./modelTagger");
+const { embedTexts } = require("./embedder");
 const { computeRecommendations } = require("./recommend");
 
 // Firebase Admin — requires Admin/serviceAccountKey.json
 let db = null;
 let FieldValue = null;
 try {
+  console.log("Initializing Firebase Admin...");
   const admin = require("firebase-admin");
-  const serviceAccount = require("../serviceAccountKey.json");
+  const serviceAccount = require("./serviceAccountKey.json");
+  console.log("serviceAccountKey.json", serviceAccount ? "found" : "not found");
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
   db = admin.firestore();
   FieldValue = admin.firestore.FieldValue;
@@ -35,7 +38,13 @@ function generateBuildingId() {
 }
 
 
-function reconcileEvent(event, building, tags) {
+// Same shape as openrouter.py's event_text() - keeps the tagger and the
+// embedder scoring the same textual representation of an event.
+function eventEmbedText(event) {
+  return `Name: ${event.name || ""}\nDate: ${event.date || ""}\nDescription: ${event.description || ""}`;
+}
+
+function reconcileEvent(event, building, tags, embedding) {
   return {
     // Firestore document fields
     buildingId: generateBuildingId(),
@@ -47,6 +56,7 @@ function reconcileEvent(event, building, tags) {
     date: event.date || null,
     description: event.description || "",
     tags,
+    embedding: embedding || null,
     gainedCoins: 0,
     gainedKb: 0,
     imageUrl: event.imageUrl || null,
@@ -109,6 +119,7 @@ app.get("/api/scrape", async (req, res) => {
 
 // List schools from Firestore for the top-level "upload under" dropdown
 app.get("/api/schools", async (req, res) => {
+  console.log("Fetching schools...");
   if (!db) return res.status(503).json({ error: "Firebase not configured." });
 
   try {
@@ -212,9 +223,10 @@ app.post("/api/upload", async (req, res) => {
       }
     }
 
-    // Tag only the non-duplicate events - duplicates are skipped on upload
-    // below anyway, so there's no reason to spend a model call tagging them.
-    // Duplicates must be computed first (above) so this filter is accurate.
+    // Tag and embed only the non-duplicate events - duplicates are skipped
+    // on upload below anyway, so there's no reason to spend model/embedding
+    // calls on them. Duplicates must be computed first (above) so this
+    // filter is accurate.
     const nonDuplicateEntries = flatEntries.filter((e) => !e.isDuplicate);
     const taggedEvents = nonDuplicateEntries.length
       ? await tagEventsWithModel(
@@ -225,11 +237,19 @@ app.post("/api/upload", async (req, res) => {
           }))
         )
       : [];
+    // One batched embeddings call for the whole upload instead of one per
+    // event - embedded once here and stored on the doc; recommend.js reads
+    // it back rather than re-embedding events on every nightly run.
+    const embeddings = nonDuplicateEntries.length
+      ? await embedTexts(nonDuplicateEntries.map(({ event }) => eventEmbedText(event)))
+      : [];
 
-    let taggedIndex = 0;
+    let nonDuplicateIndex = 0;
     const reconciled = flatEntries.map(({ event, building, isDuplicate }) => {
-      const tags = isDuplicate ? [] : taggedEvents[taggedIndex++].modelTags;
-      const rec = reconcileEvent(event, building, tags);
+      const tags = isDuplicate ? [] : taggedEvents[nonDuplicateIndex].modelTags;
+      const embedding = isDuplicate ? null : embeddings[nonDuplicateIndex];
+      if (!isDuplicate) nonDuplicateIndex++;
+      const rec = reconcileEvent(event, building, tags, embedding);
       rec._duplicate = isDuplicate;
       return rec;
     });
@@ -275,6 +295,7 @@ app.post("/api/upload", async (req, res) => {
         date: rec.date || null,
         description: rec.description,
         tags: rec.tags,
+        embedding: rec.embedding,
         gainedCoins: rec.gainedCoins,
         gainedKb: rec.gainedKb,
         imageUrl: rec.imageUrl,

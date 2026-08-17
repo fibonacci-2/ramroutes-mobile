@@ -1,5 +1,8 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 .env
+# Firebase Admin SDK service account keys - real credentials, never commit
+serviceAccountKey.json
+
 # dependencies
 node_modules/
 
