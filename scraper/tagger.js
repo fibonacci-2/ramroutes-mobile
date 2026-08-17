@@ -3,9 +3,10 @@
 // PreferencesScreen now collects a free-text "major" field directly (see
 // ramroutes-mobile/src/constants/tags.ts for the full rationale). "tech" and
 // "fitness" stay dropped. Keep this vocabulary in sync with that file, and
-// with the externally-hosted tagging model behind Admin/scraper/
-// modelTagger.js's TAGGER_URL, which actually tags events at upload time and
-// needs its own prompt updated separately.
+// with openrouterTagger.js's prompt (which reads TAGS directly, so it stays
+// in sync automatically) and modelTagger.js's TAGGER_URL fallback model,
+// which is the actual tagger used at upload time and needs its own prompt
+// updated separately.
 const TAGS = {
   academic:  ["study", "research", "lecture", "workshop", "seminar", "tutoring", "thesis", "gre", "lsat", "academic", "exam", "quiz"],
   sports:    ["game", "match", "tournament", "intramural", "practice", "volleyball", "soccer", "basketball", "lacrosse", "tennis", "swim", "sport", "athlete"],

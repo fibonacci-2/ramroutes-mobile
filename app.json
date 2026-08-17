@@ -19,7 +19,7 @@
         ]
       },
       "config": {
-        "googleMapsApiKey": "REPLACE_WITH_IOS_GOOGLE_MAPS_API_KEY"
+        "googleMapsApiKey": "AIzaSyCc8mhgaducR12eYuXQm-ZNbx_o1GbmeMM"
       }
     },
     "android": {
@@ -47,7 +47,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "@react-native-firebase/app",
+      [
+        "@react-native-firebase/app",
+        {
+          "ios": {
+            "disableSPM": true
+          }
+        }
+      ],
       "@react-native-firebase/auth",
       "@react-native-firebase/messaging",
       [
@@ -58,7 +65,16 @@
       ],
       "expo-notifications",
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "./plugins/withFixGoogleMapsPodspec",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ]
     ]
   }
 }
