@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { primaryTagStyle } from '../constants/tagStyles';
-import { EventWithLocation } from '../hooks/useEvents';
+import { EventWithLocation, hasLatLng } from '../hooks/useEvents';
 import { UserLocation } from '../hooks/useUserLocation';
 import { color, font, radius, shadow } from '../theme';
 import { distanceMiles } from '../utils/distance';
@@ -34,7 +34,7 @@ export default function EventDetailSheet({
   if (!event) return null;
 
   const style = primaryTagStyle(event.tags);
-  const dist = userLocation ? `${distanceMiles(userLocation, event).toFixed(1)} mi from you` : null;
+  const dist = userLocation && hasLatLng(event) ? `${distanceMiles(userLocation, event).toFixed(1)} mi from you` : null;
   const primaryTag = event.tags?.[0];
   const showImage = !!event.imageUrl && failedImageId !== event.id;
 
@@ -98,10 +98,12 @@ export default function EventDetailSheet({
         </ScrollView>
 
         <View style={styles.actions}>
-          <Pressable style={[styles.pill, styles.pillGhost]} onPress={() => onDirections(event)}>
-            <Icon name="nav" size={16} color={color.text} />
-            <Text style={styles.pillGhostText}>Directions</Text>
-          </Pressable>
+          {hasLatLng(event) && (
+            <Pressable style={[styles.pill, styles.pillGhost]} onPress={() => onDirections(event)}>
+              <Icon name="nav" size={16} color={color.text} />
+              <Text style={styles.pillGhostText}>Directions</Text>
+            </Pressable>
+          )}
           <Pressable style={[styles.pill, styles.pillPrimary]} onPress={onToggleSave}>
             <Icon name="bookmark" size={16} color="white" />
             <Text style={styles.pillPrimaryText}>{saved ? 'Saved' : 'Save'}</Text>

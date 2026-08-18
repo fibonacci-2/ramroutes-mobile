@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { primaryTagStyle } from '../constants/tagStyles';
-import { EventWithLocation } from '../hooks/useEvents';
+import { EventWithLocation, hasLatLng } from '../hooks/useEvents';
 import { UserLocation } from '../hooks/useUserLocation';
 import { color, font, radius, shadow } from '../theme';
 import { distanceMiles } from '../utils/distance';
@@ -17,7 +17,7 @@ type Props = {
 
 export default function EventRailCard({ event, userLocation, selected, onPress }: Props) {
   const style = primaryTagStyle(event.tags);
-  const dist = userLocation ? `${distanceMiles(userLocation, event).toFixed(1)} mi` : null;
+  const dist = userLocation && hasLatLng(event) ? `${distanceMiles(userLocation, event).toFixed(1)} mi` : null;
 
   return (
     <Pressable style={[styles.card, selected && styles.cardSelected]} onPress={onPress}>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import EventDetailSheet from '../components/EventDetailSheet';
 import Icon, { IconName } from '../components/Icon';
-import { EventWithLocation, useEvents } from '../hooks/useEvents';
+import { EventWithLocation, hasLatLng, useEvents } from '../hooks/useEvents';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { setInterested } from '../services/buildingEvents';
@@ -42,7 +42,11 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
 
   const detailEvent = detailEventId ? byId(events, detailEventId) ?? null : null;
   const detailSaved = !!detailEvent?.interestedUsers?.includes(userId);
-  const directionsToEvent = directionsEventId ? byId(events, directionsEventId) ?? null : null;
+  // Directions is only ever requested for a located event - EventDetailSheet
+  // hides the "Directions" button otherwise - but MapScreen's directionsTo
+  // prop requires real coordinates, so narrow here too.
+  const directionsCandidate = directionsEventId ? byId(events, directionsEventId) ?? null : null;
+  const directionsToEvent = directionsCandidate && hasLatLng(directionsCandidate) ? directionsCandidate : null;
 
   const openDetail = (eventId: string) => setDetailEventId(eventId);
   const closeDetail = () => setDetailEventId(null);

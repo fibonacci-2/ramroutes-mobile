@@ -6,7 +6,7 @@ import EventMapCard from '../components/EventMapCard';
 import EventRailCard, { RAIL_CARD_WIDTH } from '../components/EventRailCard';
 import Icon from '../components/Icon';
 import { Tag } from '../constants/tags';
-import { EventWithLocation } from '../hooks/useEvents';
+import { EventWithLocation, hasLatLng } from '../hooks/useEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { mapStyle } from '../mapStyle';
 import { color, font, radius, shadow } from '../theme';
@@ -61,11 +61,13 @@ const PIN_ANCHOR = { x: 0.5, y: 32 / 36 };
 const CLUSTER_ANCHOR = { x: 0.5, y: 0.5 };
 const CAPSULE_ANCHOR = { x: 0.5, y: 1 };
 
+type LocatedEvent = EventWithLocation & { lat: number; lng: number };
+
 type Props = {
   events: EventWithLocation[];
   onOpenDetail: (eventId: string) => void;
   onSearchPress: () => void;
-  directionsTo: EventWithLocation | null;
+  directionsTo: LocatedEvent | null;
   onClearDirections: () => void;
 };
 
@@ -75,17 +77,22 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoomDelta, setZoomDelta] = useState(FALLBACK_REGION.latitudeDelta);
   const mapRef = useRef<MapView>(null);
-  const railRef = useRef<FlatList<EventWithLocation>>(null);
+  const railRef = useRef<FlatList<LocatedEvent>>(null);
   const hasAutoCentered = useRef(false);
 
-  const visibleEvents = category === 'all' ? events : events.filter((e) => e.tags?.includes(category));
+  // Events without a mappable building (see useEvents.ts) still exist
+  // everywhere else in the app (list, saved, recommendations) - only the map
+  // itself needs to drop them, since a pin can't be placed without a location.
+  const locatedEvents = useMemo(() => events.filter(hasLatLng), [events]);
+
+  const visibleEvents = category === 'all' ? locatedEvents : locatedEvents.filter((e) => e.tags?.includes(category));
 
   // One marker per building instead of one per event - events share their
   // building's lat/lng (useEvents.ts), so without this every event at a busy
   // building stacked an identical pill on the exact same coordinate and only
   // the topmost was even tappable.
   const clusters = useMemo(() => {
-    const byBuilding = new Map<string, EventWithLocation[]>();
+    const byBuilding = new Map<string, LocatedEvent[]>();
     for (const event of visibleEvents) {
       const list = byBuilding.get(event.buildingName);
       if (list) {
@@ -114,7 +121,7 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   // pulsing badge (zoomed out) or "breaks apart" into one marker per event,
   // spread around the building's point (zoomed in past CLUSTER_BREAK_APART_DELTA).
   const markers = useMemo(() => {
-    const items: { key: string; lat: number; lng: number; events: EventWithLocation[]; isCluster: boolean }[] = [];
+    const items: { key: string; lat: number; lng: number; events: LocatedEvent[]; isCluster: boolean }[] = [];
 
     for (const cluster of clusters) {
       const count = cluster.events.length;
@@ -135,7 +142,7 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
     return items;
   }, [clusters, zoomDelta]);
 
-  const panTo = (event: EventWithLocation) => {
+  const panTo = (event: LocatedEvent) => {
     mapRef.current?.animateToRegion(
       { latitude: event.lat, longitude: event.lng, latitudeDelta: 0.006, longitudeDelta: 0.006 },
       300
@@ -165,7 +172,7 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   // on it (here, since our clusters don't have per-event coordinates to
   // bound, zooming enough to cross CLUSTER_BREAK_APART_DELTA is what makes
   // its events appear); clicking a lone pin just selects it.
-  const onMarkerPress = (lat: number, lng: number, events: EventWithLocation[], isCluster: boolean) => {
+  const onMarkerPress = (lat: number, lng: number, events: LocatedEvent[], isCluster: boolean) => {
     if (isCluster) {
       mapRef.current?.animateToRegion(
         { latitude: lat, longitude: lng, latitudeDelta: CLUSTER_BREAK_APART_DELTA * 0.7, longitudeDelta: CLUSTER_BREAK_APART_DELTA * 0.7 },
@@ -201,12 +208,12 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   // load, since FALLBACK_REGION is GWU-specific and initialRegion only takes
   // effect on the MapView's first mount, before this data has arrived.
   useEffect(() => {
-    if (hasAutoCentered.current || events.length === 0) return;
+    if (hasAutoCentered.current || locatedEvents.length === 0) return;
     hasAutoCentered.current = true;
-    const avgLat = events.reduce((sum, e) => sum + e.lat, 0) / events.length;
-    const avgLng = events.reduce((sum, e) => sum + e.lng, 0) / events.length;
+    const avgLat = locatedEvents.reduce((sum, e) => sum + e.lat, 0) / locatedEvents.length;
+    const avgLng = locatedEvents.reduce((sum, e) => sum + e.lng, 0) / locatedEvents.length;
     mapRef.current?.animateToRegion({ latitude: avgLat, longitude: avgLng, latitudeDelta: 0.02, longitudeDelta: 0.02 }, 400);
-  }, [events]);
+  }, [locatedEvents]);
 
   return (
     <View style={styles.container}>

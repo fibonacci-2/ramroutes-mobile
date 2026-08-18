@@ -179,12 +179,12 @@ app.post("/api/match", async (req, res) => {
 });
 
 // Reconcile matched events and optionally upload to Firestore
-// POST /api/upload  body: { buildings: [...matchAll result] }
+// POST /api/upload  body: { buildings: [...matchAll result], unmatched: [...matchAll result] }
 // query: ?preview=true  → returns reconciled data without uploading
 app.post("/api/upload", async (req, res) => {
   if (!db) return res.status(503).json({ error: "Firebase not configured." });
 
-  const { buildings, schoolId, schoolName } = req.body;
+  const { buildings, unmatched, schoolId, schoolName } = req.body;
   if (!Array.isArray(buildings))
     return res.status(400).json({ error: "buildings must be an array" });
   if (!schoolId)
@@ -221,6 +221,27 @@ app.post("/api/upload", async (req, res) => {
           isDuplicate: existingUrls.has(event.eventUrl),
         });
       }
+    }
+
+    // Events whose scraped location matched no known building used to be
+    // dropped here entirely - matcher.js separated them out, but nothing
+    // downstream of /api/match ever did anything with the unmatched list
+    // besides display it for the operator. The event itself is still real
+    // and still worth showing (list/saved/recommendations don't need a map
+    // location - only the map does, and it already filters to events that
+    // resolve to a real building, see useEvents.ts/MapScreen.tsx). Uses the
+    // event's own scraped location text as buildingName so it's still
+    // descriptive, falling back to a placeholder when even that's missing.
+    for (const event of unmatched || []) {
+      flatEntries.push({
+        event,
+        building: {
+          buildingName: event.location || "Location TBD",
+          schoolId,
+          schoolName: schoolName || "",
+        },
+        isDuplicate: existingUrls.has(event.eventUrl),
+      });
     }
 
     // Tag and embed only the non-duplicate events - duplicates are skipped

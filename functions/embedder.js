@@ -1,4 +1,14 @@
 const MODEL = "qwen/qwen3-embedding-8b";
+// Qwen3-Embedding-8B is Matryoshka-trained (MRL) and natively returns 4096
+// dims; OpenRouter honors a `dimensions` truncation param (verified live -
+// requesting 1024 actually returns a 1024-length vector, not a padded/ignored
+// 4096 one). 1024 is a 4x cut to storage/memory/transfer - the thing that's
+// been driving the client payload size and this function's own OOM - while
+// keeping most of the retrieval quality MRL is designed to preserve at this
+// cut. Must match scraper/embedder.js's DIMENSIONS exactly: cosineSimilarity
+// requires both vectors to be the same length, and event embeddings (written
+// by the scraper) get compared against profile embeddings (written here).
+const DIMENSIONS = 1024;
 
 // Mirrors scraper/embedder.js. Cloud Functions and the standalone scraper
 // are separate deployable Node projects (own package.json, own deploy/run
@@ -29,7 +39,7 @@ async function embedTexts(texts) {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ model: MODEL, input: texts }),
+    body: JSON.stringify({ model: MODEL, input: texts, dimensions: DIMENSIONS }),
   });
 
   if (!response.ok) {
