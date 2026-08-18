@@ -391,90 +391,90 @@ exports.recomputeRecommendationsOnProfileChange = onDocumentUpdated("users/{user
 /**
  * Notify all users when someone joins for the first time
  * Triggers when a user document is updated with notificationToken for the first time
- */
-exports.sendUserJoinedNotification = onDocumentUpdated(
-    'users/{userId}',
-    async (event) => {
-        try {
-            const beforeData = event.data.before.data();
-            const afterData = event.data.after.data();
-            const userId = event.params.userId;
-            const userEmail = afterData.email || '';
+//  */
+// exports.sendUserJoinedNotification = onDocumentUpdated(
+//     'users/{userId}',
+//     async (event) => {
+//         try {
+//             const beforeData = event.data.before.data();
+//             const afterData = event.data.after.data();
+//             const userId = event.params.userId;
+//             const userEmail = afterData.email || '';
             
-            // Skip notification for guest users with @ramroutes.com emails
-            if (userEmail.endsWith('@ramroutes.com')) {
-                logger.info("Skipping user joined notification for guest user", {
-                    userId: userId,
-                    email: userEmail
-                });
-                return null;
-            }
+//             // Skip notification for guest users with @ramroutes.com emails
+//             if (userEmail.endsWith('@ramroutes.com')) {
+//                 logger.info("Skipping user joined notification for guest user", {
+//                     userId: userId,
+//                     email: userEmail
+//                 });
+//                 return null;
+//             }
             
-            // Only trigger if notificationToken was added for the first time
-            const hadToken = beforeData.notificationToken && beforeData.notificationToken.trim() !== '';
-            const hasToken = afterData.notificationToken && afterData.notificationToken.trim() !== '';
+//             // Only trigger if notificationToken was added for the first time
+//             const hadToken = beforeData.notificationToken && beforeData.notificationToken.trim() !== '';
+//             const hasToken = afterData.notificationToken && afterData.notificationToken.trim() !== '';
             
-            if (hadToken || !hasToken) {
-                // User already had a token or still doesn't have one
-                return null;
-            }
+//             if (hadToken || !hasToken) {
+//                 // User already had a token or still doesn't have one
+//                 return null;
+//             }
             
-            logger.info("New user joined the game. Pushing a notification", {
-                userId: userId,
-                userName: afterData.name,
-                email: afterData.email
-            });
+//             logger.info("New user joined the game. Pushing a notification", {
+//                 userId: userId,
+//                 userName: afterData.name,
+//                 email: afterData.email
+//             });
 
-            // Send notification to all users subscribed to 'updates' topic
-            const message = {
-                topic: 'updates',
-                notification: {
-                    title: 'New Player Joined!',
-                    body: `${afterData.name || 'A new player'} has joined the game. Welcome them to the community!`
-                },
-                data: {
-                    userId: userId,
-                    userName: afterData.name || "",
-                    type: "user_joined"
-                },
-                android: {
-                    notification: {
-                        icon: "ic_notification",
-                        color: "#4CAF50",
-                        sound: "default"
-                    },
-                    priority: "high",
-                    data: {
-                        force_foreground: "true"
-                    }
-                },
-                apns: {
-                    payload: {
-                        aps: {
-                            badge: 1,
-                            sound: "default"
-                        }
-                    }
-                }
-            };
+//             // Send notification to all users subscribed to 'updates' topic
+//             const message = {
+//                 topic: 'updates',
+//                 notification: {
+//                     title: 'New Player Joined!',
+//                     body: `${afterData.name || 'A new player'} has joined the game. Welcome them to the community!`
+//                 },
+//                 data: {
+//                     userId: userId,
+//                     userName: afterData.name || "",
+//                     type: "user_joined"
+//                 },
+//                 android: {
+//                     notification: {
+//                         icon: "ic_notification",
+//                         color: "#4CAF50",
+//                         sound: "default"
+//                     },
+//                     priority: "high",
+//                     data: {
+//                         force_foreground: "true"
+//                     }
+//                 },
+//                 apns: {
+//                     payload: {
+//                         aps: {
+//                             badge: 1,
+//                             sound: "default"
+//                         }
+//                     }
+//                 }
+//             };
             
-            const response = await getMessaging().send(message);
-            logger.info("Successfully sent user joined notification to 'updates' topic", {
-                messageId: response,
-                userId: userId,
-                userName: afterData.name
-            });
+//             const response = await getMessaging().send(message);
+//             logger.info("Successfully sent user joined notification to 'updates' topic", {
+//                 messageId: response,
+//                 userId: userId,
+//                 userName: afterData.name
+//             });
 
-            return response;
-        } catch (error) {
-            logger.error('Error sending user joined notification', {
-                error: error.message,
-                userId: event.params.userId
-            });
-            throw error;
-        }
-    }
-);
+//             return response;
+//         } catch (error) {
+//             logger.error('Error sending user joined notification', {
+//                 error: error.message,
+//                 userId: event.params.userId
+//             });
+//             throw error;
+//         }
+//     }
+// );
 
 /**
  * Notify all users when someone unlocks a building
