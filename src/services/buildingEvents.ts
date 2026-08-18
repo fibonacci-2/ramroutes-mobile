@@ -17,10 +17,19 @@ export function subscribeToBuildingEvents(
   });
 }
 
-// Unfiltered - powers the map/list/saved/chat screens, which all show events
-// across every building at once rather than one building at a time.
-export function subscribeToAllBuildingEvents(onChange: (events: BuildingEvent[]) => void): () => void {
-  return onSnapshot(collection(getFirestore(), 'building-events'), (snapshot: QuerySnapshot<DocumentData>) => {
+// Scoped to one school, not unfiltered - powers the map/list/saved/chat
+// screens, which all show every building's events for the student's own
+// campus at once rather than one building at a time. Every building-events
+// doc already has schoolId stamped on it at write time (both
+// Admin/src/components/BuildingEventForm.js and the scraper set it), so this
+// is a plain equality filter, no join required - previously this read the
+// *entire* collection across every school and relied on useEvents.ts's
+// building-name join to silently drop everything that didn't match, which
+// meant downloading (and paying to deserialize) every other school's events
+// on every launch.
+export function subscribeToAllBuildingEvents(schoolId: string, onChange: (events: BuildingEvent[]) => void): () => void {
+  const eventsRef = query(collection(getFirestore(), 'building-events'), where('schoolId', '==', schoolId));
+  return onSnapshot(eventsRef, (snapshot: QuerySnapshot<DocumentData>) => {
     const events = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...(doc.data() as Omit<BuildingEvent, 'id'>),

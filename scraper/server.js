@@ -295,7 +295,6 @@ app.post("/api/upload", async (req, res) => {
         date: rec.date || null,
         description: rec.description,
         tags: rec.tags,
-        embedding: rec.embedding,
         gainedCoins: rec.gainedCoins,
         gainedKb: rec.gainedKb,
         imageUrl: rec.imageUrl,
@@ -309,6 +308,15 @@ app.post("/api/upload", async (req, res) => {
       try {
         const docRef = await db.collection("building-events").add(doc);
         uploaded++;
+
+        // Embeddings live in a separate collection, keyed by the same doc
+        // id, instead of on the building-events doc itself - the mobile app
+        // subscribes to building-events directly and never reads the
+        // embedding, so keeping it there meant every launch downloaded and
+        // parsed a multi-KB vector per event it was never going to use.
+        if (rec.embedding) {
+          await db.collection("event-embeddings").doc(docRef.id).set({ embedding: rec.embedding });
+        }
 
         if (rec.schoolId) {
           const entry = bySchool.get(rec.schoolId) || {

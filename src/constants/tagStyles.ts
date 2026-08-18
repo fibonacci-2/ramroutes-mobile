@@ -3,7 +3,7 @@ import { color } from '../theme';
 import { Tag } from './tags';
 
 // Extends design/Quad Campus Events.html's CATS table (icon + bg + tint + ink
-// per category) to our real 10-tag taxonomy instead of the mockup's invented
+// per category) to our real 11-tag taxonomy instead of the mockup's invented
 // 6 categories - same visual mechanism (colored pin, tinted chip), real tags.
 // Alternates the accent (terracotta) and accent2 (sage) ramps like the mockup.
 type TagStyle = { icon: IconName; pinBg: string; tint: string; ink: string };
@@ -19,6 +19,7 @@ export const TAG_STYLES: Record<Tag, TagStyle> = {
   spiritual: { icon: 'spiritual', pinBg: color.accent400, tint: color.accent200, ink: color.accent800 },
   'mental-health': { icon: 'heart', pinBg: color.accent2_900, tint: color.accent2_200, ink: color.accent2_800 },
   'greek life': { icon: 'greekLife', pinBg: color.accent900, tint: color.accent2_200, ink: color.accent2_800 },
+  sustainability: { icon: 'leaf', pinBg: color.accent2_400, tint: color.accent2_200, ink: color.accent2_800 },
 };
 
 // An event's "primary" tag for pin/icon purposes - our schema allows several

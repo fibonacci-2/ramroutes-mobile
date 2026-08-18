@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import CategoryChips from '../components/CategoryChips';
 import EventMapCard from '../components/EventMapCard';
 import EventRailCard, { RAIL_CARD_WIDTH } from '../components/EventRailCard';
@@ -22,6 +22,45 @@ const FALLBACK_REGION = {
   longitudeDelta: 0.01,
 };
 
+// desginv2/Quad Campus Events.dc.html's reference clusters purely by
+// screen-space proximity every zoom/pan, so any group of 2+ pulses - there's
+// no "busy enough" threshold there. It gets away with that because its demo
+// events each have distinct coordinates, which naturally spread apart as you
+// zoom in. Our real events share their building's exact coordinate
+// (useEvents.ts has no per-event lat/lng), so a same-building group would
+// otherwise never separate at any zoom - CLUSTER_BREAK_APART_DELTA +
+// jitterOffset below are the compensating mechanism for that, not a
+// departure from the reference's behavior.
+//
+// latitudeDelta below which a zoomed-in cluster breaks apart into its
+// individual events instead of staying one collapsed badge. Tighter than
+// panTo's 0.006 (used just for selecting one event) so a normal selection
+// pan doesn't accidentally trigger it.
+const CLUSTER_BREAK_APART_DELTA = 0.004;
+// Degrees of synthetic spread applied to events inside a broken-apart
+// cluster, arranging them in a small circle around the building's true
+// point purely for on-map legibility.
+const CLUSTER_SPREAD_DEGREES = 0.00008;
+
+// Most-RSVPed events win a marker when a building has more than this many -
+// keeps a building's badge count (and, once broken apart, its jittered pins)
+// legible instead of scaling unbounded with however many events got scraped
+// there, and surfaces the events students are actually most likely to want.
+const EVENTS_PER_BUILDING_CAP = 10;
+
+function jitterOffset(index: number, count: number): { dLat: number; dLng: number } {
+  const angle = (2 * Math.PI * index) / count;
+  return { dLat: Math.sin(angle) * CLUSTER_SPREAD_DEGREES, dLng: Math.cos(angle) * CLUSTER_SPREAD_DEGREES };
+}
+
+// Matches the reference's iconAnchor: solo/zoomed-out pins are teardrop-
+// shaped (a 36px rotated square whose visual tip sits near the bottom, not
+// dead center); cluster badges are plain circles anchored at their true
+// center; zoomed-in capsules are a name pill anchored at its bottom edge.
+const PIN_ANCHOR = { x: 0.5, y: 32 / 36 };
+const CLUSTER_ANCHOR = { x: 0.5, y: 0.5 };
+const CAPSULE_ANCHOR = { x: 0.5, y: 1 };
+
 type Props = {
   events: EventWithLocation[];
   onOpenDetail: (eventId: string) => void;
@@ -34,11 +73,67 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   const userLocation = useUserLocation();
   const [category, setCategory] = useState<Tag | 'all'>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [zoomDelta, setZoomDelta] = useState(FALLBACK_REGION.latitudeDelta);
   const mapRef = useRef<MapView>(null);
   const railRef = useRef<FlatList<EventWithLocation>>(null);
   const hasAutoCentered = useRef(false);
 
   const visibleEvents = category === 'all' ? events : events.filter((e) => e.tags?.includes(category));
+
+  // One marker per building instead of one per event - events share their
+  // building's lat/lng (useEvents.ts), so without this every event at a busy
+  // building stacked an identical pill on the exact same coordinate and only
+  // the topmost was even tappable.
+  const clusters = useMemo(() => {
+    const byBuilding = new Map<string, EventWithLocation[]>();
+    for (const event of visibleEvents) {
+      const list = byBuilding.get(event.buildingName);
+      if (list) {
+        list.push(event);
+      } else {
+        byBuilding.set(event.buildingName, [event]);
+      }
+    }
+    return Array.from(byBuilding.entries()).map(([buildingName, clusterEvents]) => {
+      const top = clusterEvents
+        .slice()
+        .sort((a, b) => (b.interestedUsers?.length ?? 0) - (a.interestedUsers?.length ?? 0))
+        .slice(0, EVENTS_PER_BUILDING_CAP);
+      return { key: buildingName, lat: top[0].lat, lng: top[0].lng, events: top };
+    });
+  }, [visibleEvents]);
+
+  // Individual (non-cluster) markers switch from an icon-only teardrop pin
+  // to a named capsule once zoomed in past the same threshold clusters break
+  // apart at - there's more room per pin and fewer markers competing for
+  // attention at that zoom.
+  const zoomedIn = zoomDelta < CLUSTER_BREAK_APART_DELTA;
+
+  // Flattens clusters into what actually gets a Marker this render: a solo
+  // event stays one marker; a 2+ event building either renders as one
+  // pulsing badge (zoomed out) or "breaks apart" into one marker per event,
+  // spread around the building's point (zoomed in past CLUSTER_BREAK_APART_DELTA).
+  const markers = useMemo(() => {
+    const items: { key: string; lat: number; lng: number; events: EventWithLocation[]; isCluster: boolean }[] = [];
+
+    for (const cluster of clusters) {
+      const count = cluster.events.length;
+      const isCluster = count > 1;
+      const brokenApart = isCluster && zoomDelta < CLUSTER_BREAK_APART_DELTA;
+
+      if (!brokenApart) {
+        items.push({ key: cluster.key, lat: cluster.lat, lng: cluster.lng, events: cluster.events, isCluster });
+        continue;
+      }
+
+      cluster.events.forEach((event, index) => {
+        const { dLat, dLng } = jitterOffset(index, count);
+        items.push({ key: event.id, lat: cluster.lat + dLat, lng: cluster.lng + dLng, events: [event], isCluster: false });
+      });
+    }
+
+    return items;
+  }, [clusters, zoomDelta]);
 
   const panTo = (event: EventWithLocation) => {
     mapRef.current?.animateToRegion(
@@ -64,6 +159,21 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   const onCategoryChange = (next: Tag | 'all') => {
     setCategory(next);
     setSelectedId(null);
+  };
+
+  // Matches the reference: clicking a cluster computes bounds and zooms in
+  // on it (here, since our clusters don't have per-event coordinates to
+  // bound, zooming enough to cross CLUSTER_BREAK_APART_DELTA is what makes
+  // its events appear); clicking a lone pin just selects it.
+  const onMarkerPress = (lat: number, lng: number, events: EventWithLocation[], isCluster: boolean) => {
+    if (isCluster) {
+      mapRef.current?.animateToRegion(
+        { latitude: lat, longitude: lng, latitudeDelta: CLUSTER_BREAK_APART_DELTA * 0.7, longitudeDelta: CLUSTER_BREAK_APART_DELTA * 0.7 },
+        350
+      );
+      return;
+    }
+    selectEvent(events[0].id);
   };
 
   // Draws the route in-app (react-native-maps Polyline) instead of handing off
@@ -109,19 +219,23 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
         toolbarEnabled={false}
         showsUserLocation
         showsMyLocationButton={false}
+        onRegionChangeComplete={(region: Region) => setZoomDelta(region.latitudeDelta)}
       >
-        {visibleEvents.map((event) => {
-          const selected = event.id === selectedId;
+        {markers.map((marker) => {
+          const selected = marker.events.some((e) => e.id === selectedId);
+          const title = marker.isCluster
+            ? `${marker.key} (${marker.events.length} events)`
+            : marker.events[0].eventName;
           return (
             <Marker
-              key={event.id}
-              coordinate={{ latitude: event.lat, longitude: event.lng }}
-              title={event.eventName}
-              onPress={() => selectEvent(event.id)}
-              anchor={{ x: 0.5, y: 1 }}
-              tracksViewChanges={selected}
+              key={marker.key}
+              coordinate={{ latitude: marker.lat, longitude: marker.lng }}
+              title={title}
+              onPress={() => onMarkerPress(marker.lat, marker.lng, marker.events, marker.isCluster)}
+              anchor={marker.isCluster ? CLUSTER_ANCHOR : zoomedIn ? CAPSULE_ANCHOR : PIN_ANCHOR}
+              tracksViewChanges={selected || marker.isCluster || zoomedIn}
             >
-              <EventMapCard event={event} selected={selected} />
+              <EventMapCard events={marker.events} selectedEventId={selectedId} zoomedIn={zoomedIn} />
             </Marker>
           );
         })}

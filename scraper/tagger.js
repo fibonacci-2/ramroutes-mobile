@@ -17,6 +17,7 @@ const TAGS = {
   cultural:  ["culture", "heritage", "international", "diversity", "identity", "pride", "tradition", "multicultural", "global", "awareness"],
   spiritual: ["prayer", "faith", "chapel", "meditation", "spiritual", "mass", "worship", "religious", "interfaith", "dharma"],
   "mental-health": ["mental health", "counseling", "counselling", "therapy", "self-care", "self care", "stress relief", "anxiety", "depression", "mindfulness", "meditation", "wellbeing", "well-being", "support group", "crisis support", "resilience"],
+  sustainability: ["sustainability", "sustainable", "climate", "environment", "environmental", "recycle", "recycling", "compost", "composting", "green", "eco", "renewable", "conservation", "zero waste", "carbon"],
 };
 
 // Returns array of matching tag strings for a given event

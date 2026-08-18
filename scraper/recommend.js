@@ -33,6 +33,24 @@ function scoreEvent(event, interests, profileEmbedding) {
   return tagScore + LAMBDA * embScore;
 }
 
+// Recurring events (e.g. a weekly "Tango Practica") upload one Firestore doc
+// per occurrence, all sharing the same eventName - they score near-identically
+// against any given profile, so without this the top 10 could be the same
+// title repeated several times instead of 10 distinct events. Must run after
+// sorting by score and before slicing to the limit, so it keeps each name's
+// best-scoring occurrence and doesn't shrink the final count below the limit.
+function dedupeByName(scoredEvents) {
+  const seen = new Set();
+  const out = [];
+  for (const item of scoredEvents) {
+    const key = (item.eventName || "").trim().toLowerCase();
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    out.push(item);
+  }
+  return out;
+}
+
 async function computeRecommendations({ onProgress } = {}) {
   init();
 
@@ -41,6 +59,18 @@ async function computeRecommendations({ onProgress } = {}) {
   const events = eventsSnap.docs
     .map((doc) => ({ id: doc.id, ...doc.data() }))
     .filter((e) => Array.isArray(e.tags) && e.tags.length > 0);
+
+  // Embeddings live in a separate collection (see server.js's /api/upload) -
+  // the mobile app subscribes to building-events directly and never reads
+  // embeddings, so keeping them off that doc keeps its client-facing payload
+  // small. Merge them back in here, in-memory, for scoring.
+  onProgress?.("Loading event embeddings...");
+  const embeddingsSnap = await db.collection("event-embeddings").get();
+  const embeddingById = new Map(embeddingsSnap.docs.map((doc) => [doc.id, doc.data().embedding]));
+  for (const event of events) {
+    const embedding = embeddingById.get(event.id);
+    if (embedding) event.embedding = embedding;
+  }
 
   onProgress?.(`${events.length} tagged events loaded.`);
 
@@ -56,6 +86,20 @@ async function computeRecommendations({ onProgress } = {}) {
     .filter((u) => (Array.isArray(u.interests) && u.interests.length > 0) || u.bio || u.major);
 
   onProgress?.(`${users.length} eligible users found.`);
+
+  // Group events by school so each user is scored only against their own
+  // campus's catalog - building-events has no cross-school relevance, and
+  // without this every user was scored against every school's events,
+  // meaning recommendedEvents could end up full of events from a school the
+  // user isn't even enrolled in (which the app's schoolId-scoped event
+  // subscription then can't resolve locally at all).
+  const eventsBySchool = new Map();
+  for (const event of events) {
+    if (!event.schoolId) continue;
+    const list = eventsBySchool.get(event.schoolId);
+    if (list) list.push(event);
+    else eventsBySchool.set(event.schoolId, [event]);
+  }
 
   // One batched embeddings call for every eligible user's profile text,
   // instead of one call per user. Falls back to tag-only scoring (embScore
@@ -79,12 +123,12 @@ async function computeRecommendations({ onProgress } = {}) {
   for (let i = 0; i < users.length; i++) {
     const user = users[i];
     const profileEmbedding = userEmbeddings[i];
-    const recommended = events
-      .map((e) => ({ id: e.id, score: scoreEvent(e, user.interests, profileEmbedding) }))
+    const schoolEvents = eventsBySchool.get(user.schoolId) || [];
+    const scored = schoolEvents
+      .map((e) => ({ id: e.id, eventName: e.eventName, score: scoreEvent(e, user.interests, profileEmbedding) }))
       .filter((e) => e.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-      .map((e) => e.id);
+      .sort((a, b) => b.score - a.score);
+    const recommended = dedupeByName(scored).slice(0, 10).map((e) => e.id);
 
     if (recommended.length === 0) continue;
 

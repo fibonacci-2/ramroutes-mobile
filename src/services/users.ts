@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { getFirestore, doc, getDoc, onSnapshot, setDoc, updateDoc, serverTimestamp } from '@react-native-firebase/firestore';
 
 // Anonymous sign-in (useAuth.ts) gives every install a uid but no Firestore
 // doc - creates the minimal users/{uid} profile this app actually reads/
@@ -81,13 +81,18 @@ export async function updateUserInterests(userId: string, interests: string[]): 
   await updateProfileFields(userId, { interests });
 }
 
-// Written nightly by scraper/recommend.js's tagOverlap + λ·cosine(embedding)
-// scoring (PLAN.md's "personalization v2") - read-only from the app, never
-// written here, so client and server never race to update the same list.
-export async function getUserRecommendedEvents(userId: string): Promise<string[]> {
-  const snapshot = await getDoc(doc(getFirestore(), 'users', userId));
-  const recommended = snapshot.data()?.recommendedEvents;
-  return Array.isArray(recommended) ? recommended : [];
+// Written both nightly (scraper/recommend.js) and reactively on every
+// profile edit (functions/index.js's recomputeRecommendationsOnProfileChange)
+// - read-only from the app, never written here, so client and server never
+// race to update the same list. A live subscription rather than a one-shot
+// read: since the Cloud Function updates this within seconds of a profile
+// change, a one-shot fetch on mount would keep showing whatever list was
+// there at launch until the next full app restart.
+export function subscribeToUserRecommendedEvents(userId: string, onChange: (ids: string[]) => void): () => void {
+  return onSnapshot(doc(getFirestore(), 'users', userId), (snapshot) => {
+    const recommended = snapshot.data()?.recommendedEvents;
+    onChange(Array.isArray(recommended) ? recommended : []);
+  });
 }
 
 // Same "bio" field the Unity app reads/writes (UserService.cs's UpdateUserBio) -

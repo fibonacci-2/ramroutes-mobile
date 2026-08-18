@@ -4,9 +4,10 @@ import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 // Lucide-style icon set, stroke-width 2.75 per design/ds/readme.md's icon
 // guidance. Paths for map/cal/chat/bookmark/search/clock/pin/brief/trophy/
 // users/music/heart/book/spark/send/back/nav/locate are copied verbatim from
-// design/Quad Campus Events.html's IC table. academic/food/cultural/spiritual
-// have no equivalent in the mockup (it only defined 6 categories, not our
-// 10-tag taxonomy) - those four are original approximations.
+// design/Quad Campus Events.html's IC table. academic/food/cultural/spiritual/
+// leaf have no equivalent in the mockup (it only defined 6 categories, not
+// our 11-tag taxonomy) - leaf is Lucide's actual "leaf" glyph (for
+// "sustainability"), the other three are original approximations.
 const PATHS: Record<string, ReactElement> = {
   map: (
     <>
@@ -119,6 +120,12 @@ const PATHS: Record<string, ReactElement> = {
     </>
   ),
   spiritual: <Path d="M12 2c1 3-3 4-3 8a3 3 0 0 0 6 0c0-2-1-3-1-5 2 1 3 4 3 6a5 5 0 0 1-10 0c0-5 3-6 5-9z" />,
+  leaf: (
+    <>
+      <Path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-11 10Z" />
+      <Path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+    </>
+  ),
   // Classical column/pediment glyph for "greek life" - a real tag on
   // building-events docs that isn't in the mockup's category set either.
   greekLife: (

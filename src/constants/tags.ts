@@ -26,6 +26,7 @@ export const AVAILABLE_TAGS = [
   'spiritual',
   'mental-health',
   'greek life',
+  'sustainability',
 ] as const;
 
 export type Tag = (typeof AVAILABLE_TAGS)[number];

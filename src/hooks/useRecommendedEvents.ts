@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
-import { getUserRecommendedEvents } from '../services/users';
+import { subscribeToUserRecommendedEvents } from '../services/users';
 
-// One-shot load, not a live subscription - recommendedEvents only changes
-// once a night (scraper/recommend.js), so there's no need to keep a
-// Firestore listener open for it like useInterests does for interests.
+// Live subscription, not a one-shot load - functions/index.js's
+// recomputeRecommendationsOnProfileChange updates recommendedEvents
+// reactively within seconds of a bio/major/interests edit (not just once a
+// night via scraper/recommend.js anymore), so a one-shot fetch on mount
+// would keep showing a stale list until the app fully restarted.
 export function useRecommendedEvents(userId: string | null): string[] {
   const [recommendedEventIds, setRecommendedEventIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!userId) return;
-    getUserRecommendedEvents(userId).then(setRecommendedEventIds);
+    return subscribeToUserRecommendedEvents(userId, setRecommendedEventIds);
   }, [userId]);
 
   return recommendedEventIds;
