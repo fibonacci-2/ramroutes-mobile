@@ -389,6 +389,87 @@ exports.recomputeRecommendationsOnProfileChange = onDocumentUpdated("users/{user
 });
 
 /**
+ * Notify a student when their "For you" section actually changes - not on
+ * every users/{userId} write, only when recommendedEvents' membership
+ * differs from before. Fires regardless of which process wrote the update
+ * (recomputeRecommendationsOnProfileChange above, or scraper/recommend.js's
+ * nightly batch) since both just do a plain Firestore update on this doc.
+ * Compared as a set, not an ordered list: a pure re-rank of the same 10
+ * events isn't something a student would perceive as new content, so it
+ * shouldn't page them.
+ */
+exports.notifyRecommendationsUpdated = onDocumentUpdated("users/{userId}", async (event) => {
+  const userId = event.params.userId;
+  try {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+
+    const beforeIds = new Set(Array.isArray(before.recommendedEvents) ? before.recommendedEvents : []);
+    const afterIds = Array.isArray(after.recommendedEvents) ? after.recommendedEvents : [];
+
+    const changed = afterIds.length !== beforeIds.size || afterIds.some((id) => !beforeIds.has(id));
+    if (!changed || afterIds.length === 0) {
+      return null;
+    }
+
+    const fcmToken = after.notificationToken;
+    if (!fcmToken) {
+      logger.info("Recommendations changed but user has no notification token", { userId });
+      return null;
+    }
+
+    logger.info("Recommendations changed, notifying user", { userId, count: afterIds.length });
+
+    const message = {
+      token: fcmToken,
+      notification: {
+        title: "Your For You list just updated",
+        body: `${afterIds.length} event${afterIds.length === 1 ? "" : "s"} picked for you - take a look!`
+      },
+      data: {
+        userId,
+        count: String(afterIds.length),
+        type: "recommendations_updated"
+      },
+      android: {
+        notification: {
+          icon: "ic_notification",
+          color: "#4CAF50",
+          sound: "default"
+        },
+        priority: "high",
+        data: {
+          force_foreground: "true"
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            badge: 1,
+            sound: "default"
+          }
+        }
+      }
+    };
+
+    const response = await getMessaging().send(message);
+    logger.info("Successfully sent recommendations-updated notification", {
+      messageId: response,
+      userId,
+      count: afterIds.length
+    });
+    return response;
+  } catch (error) {
+    logger.error("Error sending recommendations-updated notification", {
+      error: error.message,
+      userId
+    });
+    // Don't rethrow - a bad token/profile shouldn't retry-storm this trigger.
+    return null;
+  }
+});
+
+/**
  * Notify all users when someone joins for the first time
  * Triggers when a user document is updated with notificationToken for the first time
 //  */

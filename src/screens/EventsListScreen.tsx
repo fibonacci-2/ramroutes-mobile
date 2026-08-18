@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import CategoryChips from '../components/CategoryChips';
-import EventRailCard, { RAIL_CARD_WIDTH } from '../components/EventRailCard';
 import EventRow from '../components/EventRow';
+import ForYouCard, { FOR_YOU_CARD_WIDTH } from '../components/ForYouCard';
 import Icon from '../components/Icon';
 import { Tag } from '../constants/tags';
 import { EventWithLocation } from '../hooks/useEvents';
@@ -72,10 +72,10 @@ export default function EventsListScreen({ events, userId, onOpenDetail }: Props
                 keyExtractor={(e) => e.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.forYouRail}
-                snapToInterval={RAIL_CARD_WIDTH + 10}
+                snapToInterval={FOR_YOU_CARD_WIDTH + 12}
                 decelerationRate="fast"
                 renderItem={({ item }) => (
-                  <EventRailCard event={item} userLocation={userLocation} selected={false} onPress={() => onOpenDetail(item.id)} />
+                  <ForYouCard event={item} userLocation={userLocation} onPress={() => onOpenDetail(item.id)} />
                 )}
               />
             </View>
@@ -124,9 +124,21 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontFamily: font.bodySemibold, fontSize: 14, color: color.text },
   chipsRow: { paddingHorizontal: 20, paddingVertical: 6 },
   list: { flex: 1 },
-  forYouSection: { paddingTop: 10, paddingBottom: 6 },
-  forYouTitle: { fontFamily: font.heading, fontSize: 18, color: color.text, paddingHorizontal: 20, marginBottom: 8 },
-  forYouRail: { gap: 10, paddingHorizontal: 20, alignItems: 'center' },
+  // Tinted, elevated band instead of a plain header - makes the curated
+  // section read as its own zone rather than blending into the screen
+  // background like every other section here does.
+  forYouSection: {
+    marginTop: 10,
+    marginHorizontal: 14,
+    marginBottom: 12,
+    paddingTop: 16,
+    paddingBottom: 14,
+    borderRadius: radius.lg,
+    backgroundColor: color.accent100,
+    ...shadow.sm,
+  },
+  forYouTitle: { fontFamily: font.heading, fontSize: 19, color: color.text, paddingHorizontal: 16, marginBottom: 10 },
+  forYouRail: { gap: 12, paddingHorizontal: 16, alignItems: 'flex-start' },
   empty: { alignItems: 'center', paddingTop: 70, paddingHorizontal: 40 },
   emptyBlob: {
     width: 96,

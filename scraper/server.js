@@ -249,12 +249,17 @@ app.post("/api/upload", async (req, res) => {
     // calls on them. Duplicates must be computed first (above) so this
     // filter is accurate.
     const nonDuplicateEntries = flatEntries.filter((e) => !e.isDuplicate);
+    // TAGGER_URL's endpoint validates its request body strictly (a null
+    // description 422s the *entire* batch, not just that one event, taking
+    // down the whole upload) - null-safety these the same way reconcileEvent
+    // already does for the Firestore doc, instead of passing raw scraped
+    // fields straight through.
     const taggedEvents = nonDuplicateEntries.length
       ? await tagEventsWithModel(
           nonDuplicateEntries.map(({ event }) => ({
-            name: event.name,
-            date: event.date,
-            description: event.description,
+            name: event.name || "",
+            date: event.date || "",
+            description: event.description || "",
           }))
         )
       : [];
