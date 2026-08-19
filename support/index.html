@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RamRoutes Support</title>
+<style>
+  :root {
+    --bg: #F5EAD8;
+    --card: #FFFFFF;
+    --text: #2A2119;
+    --muted: #6B5D4F;
+    --accent: #C67139;
+    --divider: #E4D6C1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    flex: none;
+  }
+  h1 {
+    font-size: 22px;
+    margin: 0;
+  }
+  header p {
+    margin: 2px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--divider);
+    border-radius: 16px;
+    padding: 24px 24px 8px;
+    margin-bottom: 20px;
+  }
+  h2 {
+    font-size: 16px;
+    margin: 0 0 10px;
+  }
+  p { margin: 0 0 16px; font-size: 14.5px; }
+  a { color: var(--accent); }
+  .contact {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #FBF1E4;
+    border: 1px solid var(--divider);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14.5px;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  details {
+    border-top: 1px solid var(--divider);
+    padding: 14px 0;
+  }
+  details:first-of-type { border-top: none; }
+  summary {
+    font-weight: 600;
+    font-size: 14.5px;
+    cursor: pointer;
+  }
+  details p { margin-top: 10px; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12.5px;
+    margin-top: 32px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">R</div>
+      <div>
+        <h1>RamRoutes Support</h1>
+        <p>Campus events, made for you</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <h2>Contact us</h2>
+      <p>Running into a problem, have feedback, or need to report an issue? Reach out and we'll get back to you.</p>
+      <a class="contact" href="mailto:[TODO: support email]">✉ [TODO: support email]</a>
+    </div>
+
+    <div class="card">
+      <h2>Frequently asked questions</h2>
+
+      <details open>
+        <summary>Why don't I see any events?</summary>
+        <p>RamRoutes only shows events for your own school. Make sure you selected the right school when you first opened the app. If your school's events haven't been posted yet, check back soon — new events are added regularly.</p>
+      </details>
+
+      <details>
+        <summary>How does the "For You" list work?</summary>
+        <p>RamRoutes looks at your major, interests, and the events you save to build a personalized list of recommended events. It updates automatically as your profile changes, so keep your interests up to date in the profile tab for the best picks.</p>
+      </details>
+
+      <details>
+        <summary>What is Scout?</summary>
+        <p>Scout is RamRoutes' built-in assistant. Ask it things like "something fun this weekend" or "career events" and it'll suggest real events happening on your campus.</p>
+      </details>
+
+      <details>
+        <summary>How do I save an event?</summary>
+        <p>Open any event's detail page and tap the save/RSVP button. Saved events show up in your Saved list, accessible from the profile tab.</p>
+      </details>
+
+      <details>
+        <summary>How do I stop getting notifications?</summary>
+        <p>You can manage notification permissions for RamRoutes at any time in your device's Settings app under Notifications &gt; RamRoutes.</p>
+      </details>
+
+      <details>
+        <summary>How do I delete my account or data?</summary>
+        <p>Email us at <a href="mailto:[TODO: support email]">[TODO: support email]</a> from the address associated with your account and we'll remove your data.</p>
+      </details>
+    </div>
+
+    <footer>RamRoutes &middot; [TODO: year / company name] &middot; <a href="./privacy.html">Privacy Policy</a></footer>
+  </div>
+</body>
+</html>
