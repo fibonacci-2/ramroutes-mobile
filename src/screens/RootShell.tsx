@@ -79,7 +79,6 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
         {tab === 'chat' && (
           <ScoutScreen
             events={events}
-            userId={userId}
             seedMessage={chatSeed}
             onSeedConsumed={() => setChatSeed(null)}
             onOpenDetail={openDetail}

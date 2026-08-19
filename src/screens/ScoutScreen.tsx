@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import Icon from '../components/Icon';
 import { primaryTagStyle } from '../constants/tagStyles';
 import { EventWithLocation } from '../hooks/useEvents';
-import { scoutReply } from '../services/scout';
+import { askScout, ScoutHistoryMessage } from '../services/scout';
 import { color, font, radius, shadow } from '../theme';
 import { byId } from '../utils/byId';
 
@@ -19,13 +19,12 @@ const newId = () => `${Date.now()}-${nextId++}`;
 
 type Props = {
   events: EventWithLocation[];
-  userId: string;
   seedMessage: string | null;
   onSeedConsumed: () => void;
   onOpenDetail: (eventId: string) => void;
 };
 
-export default function ScoutScreen({ events, userId, seedMessage, onSeedConsumed, onOpenDetail }: Props) {
+export default function ScoutScreen({ events, seedMessage, onSeedConsumed, onOpenDetail }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList<Message>>(null);
@@ -57,16 +56,44 @@ export default function ScoutScreen({ events, userId, seedMessage, onSeedConsume
     }, 600 + Math.random() * 400);
   };
 
+  // Recent turns only (not the whole conversation) - Scout doesn't need
+  // full history to stay coherent, and it keeps the request small. Read
+  // before this message's own state update below, so it correctly excludes
+  // the message being sent (that goes to askScout separately).
+  const recentHistory = (): ScoutHistoryMessage[] =>
+    messages
+      .filter((m) => !m.typing)
+      .slice(-6)
+      .map((m) => ({ role: m.role, text: m.text }));
+
   const sendMessage = (text: string) => {
     if (!text.trim()) return;
+    const history = recentHistory();
+
     setMessages((prev) => [...prev, { id: newId(), role: 'me', text }]);
     setInput('');
     scrollToEnd();
-    setTimeout(() => {
-      const savedIds = events.filter((e) => e.interestedUsers?.includes(userId)).map((e) => e.id);
-      const reply = scoutReply(text, events, savedIds);
-      aiSay(reply.text, reply.eventIds);
-    }, 200);
+
+    const typingId = newId();
+    setMessages((prev) => [...prev, { id: typingId, role: 'ai', text: '', typing: true }]);
+    scrollToEnd();
+
+    askScout(text, history)
+      .then((reply) => {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === typingId ? { id: typingId, role: 'ai', text: reply.text, eventIds: reply.eventIds } : m))
+        );
+      })
+      .catch(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === typingId
+              ? { id: typingId, role: 'ai', text: "Sorry, I couldn't come up with a reply just now — try again in a moment." }
+              : m
+          )
+        );
+      })
+      .finally(scrollToEnd);
   };
 
   return (
