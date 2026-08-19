@@ -7,9 +7,17 @@ try {
 // Pinned, not the "openrouter/free" auto-router - same lesson
 // scraper/openrouterTagger.js already learned: the router picks a different
 // underlying free model per request, which breaks structured-output
-// consistency. Same model as the tagger for now, since it's free and
-// already proven to honor strict JSON schema mode reliably.
-const MODEL = "openai/gpt-oss-20b:free";
+// consistency.
+//
+// microsoft/phi-4, not a reasoning model (openai/gpt-oss-20b:free has
+// mandatory reasoning; nvidia/nemotron-nano-9b-v2:free is a hybrid
+// reasoner that kept burning its max_tokens budget on hidden thinking even
+// with reasoning.enabled=false) - both were the source of Scout's slow/
+// empty replies. Phi-4 has no reasoning mode at all (OpenRouter's
+// /api/v1/models reports reasoning: null for it), so there's no hidden
+// token budget to fight. Not free (~$0.07/$0.14 per million tokens in/out)
+// but cheap enough that a Scout reply costs a fraction of a cent.
+const MODEL = "microsoft/phi-4";
 const MAX_RATE_LIMIT_RETRIES = 5;
 const DEFAULT_RETRY_AFTER_SECONDS = 5;
 
@@ -118,6 +126,9 @@ async function getScoutReply(message, history, events) {
         model: MODEL,
         messages: [{ role: "user", content: buildPrompt(message, history, events) }],
         temperature: 0.5,
+        // Reply is meant to be 1-3 short sentences plus a small id array -
+        // bounds worst-case generation time if the model ever rambles.
+        max_tokens: 300,
         response_format: buildSchema(eventIds),
       }),
     });
@@ -137,13 +148,16 @@ async function getScoutReply(message, history, events) {
   }
 
   const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
+  const choice = data.choices?.[0];
+  const content = choice?.message?.content || "";
 
   let parsed;
   try {
     parsed = JSON.parse(content);
   } catch {
-    throw new ParseError(`Scout reply wasn't parseable JSON: ${content.slice(0, 200)}`);
+    throw new ParseError(
+      `Scout reply wasn't parseable JSON (finish_reason: ${choice?.finish_reason}): ${content.slice(0, 200)}`
+    );
   }
 
   if (typeof parsed.text !== "string") {

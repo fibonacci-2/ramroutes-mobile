@@ -11,7 +11,7 @@ export type ScoutHistoryMessage = { role: 'me' | 'ai'; text: string };
 // (via getAuth()'s uid -> users/{uid}.schoolId), so this only ever sends the
 // message text and recent turn history, nothing about which school/events.
 export async function askScout(message: string, history: ScoutHistoryMessage[]): Promise<ScoutReply> {
-  console.log('askScout', { message, history });
+  // console.log('askScout', { message, history });
   const scoutReplyFn = httpsCallable<{ message: string; history: ScoutHistoryMessage[] }, ScoutReply>(
     getFunctions(),
     'scoutReply'
