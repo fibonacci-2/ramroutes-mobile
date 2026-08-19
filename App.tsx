@@ -4,7 +4,9 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import ErrorBoundary from './src/components/ErrorBoundary';
 import AppGate from './src/screens/AppGate';
+import { initAnalytics } from './src/services/analytics';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -15,6 +17,10 @@ export default function App() {
   });
 
   useEffect(() => {
+    initAnalytics();
+  }, []);
+
+  useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
@@ -23,9 +29,9 @@ export default function App() {
   if (!fontsLoaded) return null;
 
   return (
-    <>
+    <ErrorBoundary>
       <AppGate />
       <StatusBar style="dark" />
-    </>
+    </ErrorBoundary>
   );
 }

@@ -3,6 +3,7 @@ import { Animated, FlatList, Pressable, StyleSheet, Text, TextInput, View } from
 import Icon from '../components/Icon';
 import { primaryTagStyle } from '../constants/tagStyles';
 import { EventWithLocation } from '../hooks/useEvents';
+import { recordError, trackEvent } from '../services/analytics';
 import { askScout, ScoutHistoryMessage } from '../services/scout';
 import { color, font, radius, shadow } from '../theme';
 import { byId } from '../utils/byId';
@@ -82,13 +83,16 @@ export default function ScoutScreen({ events, messages, setMessages, seedMessage
     setMessages((prev) => [...prev, { id: typingId, role: 'ai', text: '', typing: true }]);
     scrollToEnd();
 
+    trackEvent('scout_message_sent');
+
     askScout(text, history)
       .then((reply) => {
         setMessages((prev) =>
           prev.map((m) => (m.id === typingId ? { id: typingId, role: 'ai', text: reply.text, eventIds: reply.eventIds } : m))
         );
       })
-      .catch(() => {
+      .catch((err) => {
+        recordError(err, 'scout-reply');
         setMessages((prev) =>
           prev.map((m) =>
             m.id === typingId

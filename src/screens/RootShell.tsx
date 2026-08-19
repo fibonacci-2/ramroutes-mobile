@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import EventDetailSheet from '../components/EventDetailSheet';
 import Icon, { IconName } from '../components/Icon';
 import { EventWithLocation, hasLatLng, useEvents } from '../hooks/useEvents';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { trackEvent, trackScreenView } from '../services/analytics';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius } from '../theme';
 import { byId } from '../utils/byId';
@@ -43,6 +44,13 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
   const userLocation = useUserLocation();
   usePushNotifications(userId, schoolId);
 
+  // Covers every path that changes `tab` (the tab bar, askScout's jump to
+  // chat, showDirections' jump to map, the search shortcut, Saved's browse
+  // button) from one place instead of instrumenting each setTab call site.
+  useEffect(() => {
+    trackScreenView(tab);
+  }, [tab]);
+
   const detailEvent = detailEventId ? byId(events, detailEventId) ?? null : null;
   const detailSaved = !!detailEvent?.interestedUsers?.includes(userId);
   // Directions is only ever requested for a located event - EventDetailSheet
@@ -51,19 +59,24 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
   const directionsCandidate = directionsEventId ? byId(events, directionsEventId) ?? null : null;
   const directionsToEvent = directionsCandidate && hasLatLng(directionsCandidate) ? directionsCandidate : null;
 
-  const openDetail = (eventId: string) => setDetailEventId(eventId);
+  const openDetail = (eventId: string) => {
+    setDetailEventId(eventId);
+    trackEvent('event_detail_opened', { event_id: eventId });
+  };
   const closeDetail = () => setDetailEventId(null);
 
   const askScout = (eventName: string) => {
     closeDetail();
     setTab('chat');
     setChatSeed(`Tell me about ${eventName}`);
+    trackEvent('ask_scout_about_event');
   };
 
   const showDirections = (event: EventWithLocation) => {
     closeDetail();
     setTab('map');
     setDirectionsEventId(event.id);
+    trackEvent('event_directions_requested', { event_id: event.id });
   };
 
   return (
@@ -90,7 +103,17 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
           />
         )}
         {tab === 'profile' && (
-          <PreferencesScreen schoolId={schoolId} onOpenSaved={() => setSavedVisible(true)} onChangeSchool={onChangeSchool} />
+          <PreferencesScreen
+            schoolId={schoolId}
+            onOpenSaved={() => {
+              setSavedVisible(true);
+              trackScreenView('saved');
+            }}
+            onChangeSchool={() => {
+              trackEvent('change_school_requested');
+              onChangeSchool();
+            }}
+          />
         )}
       </View>
 
@@ -113,7 +136,12 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
         userLocation={userLocation}
         saved={detailSaved}
         onClose={closeDetail}
-        onToggleSave={() => detailEvent && setInterested(detailEvent.id, userId, !detailSaved)}
+        onToggleSave={() => {
+          if (!detailEvent) return;
+          const nextSaved = !detailSaved;
+          setInterested(detailEvent.id, userId, nextSaved);
+          trackEvent('event_rsvp_toggled', { event_id: detailEvent.id, saved: nextSaved });
+        }}
         onAskScout={askScout}
         onDirections={showDirections}
       />

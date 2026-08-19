@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import { identifyUser, trackEvent } from '../services/analytics';
 import { ensureUserProfile, getUserSchoolId, setUserSchoolId } from '../services/users';
 import { color, font } from '../theme';
 import { School } from '../types/School';
@@ -18,6 +19,14 @@ export default function AppGate() {
     if (!userId) return;
     ensureUserProfile(userId).then(() => getUserSchoolId(userId)).then(setSchoolId);
   }, [userId]);
+
+  // Attributes every analytics event and crash report to a user/school from
+  // here on - fires again (harmlessly, same id) once schoolId resolves from
+  // undefined to its real value or null.
+  useEffect(() => {
+    if (!userId || schoolId === undefined) return;
+    identifyUser(userId, schoolId);
+  }, [userId, schoolId]);
 
   if (error) {
     return (
@@ -41,6 +50,7 @@ export default function AppGate() {
         onSelect={(school: School) => {
           setUserSchoolId(userId, school.id);
           setSchoolId(school.id);
+          trackEvent('school_selected', { school_id: school.id });
         }}
       />
     );

@@ -9,6 +9,7 @@ import { Tag } from '../constants/tags';
 import { EventWithLocation, hasLatLng } from '../hooks/useEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
 import { mapStyle } from '../mapStyle';
+import { trackEvent } from '../services/analytics';
 import { color, font, radius, shadow } from '../theme';
 
 // GWU campus, Foggy Bottom - used until we know the signed-in student's
@@ -142,6 +143,33 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
     return items;
   }, [clusters, zoomDelta]);
 
+  const hasClusterMarkers = useMemo(() => markers.some((m) => m.isCluster), [markers]);
+
+  // Cluster markers pulse continuously (EventMapCard's glow/ring loop), and
+  // react-native-maps only re-snapshots a custom Marker's native bitmap
+  // while tracksViewChanges is true. Binding that permanently true for every
+  // cluster (as it was) means Android's view manager gets flooded with far
+  // more insert/remove commands than it can process once a JS-driven
+  // (useNativeDriver: false, required - see EventMapCard) 60fps animation is
+  // running on several markers at once, which crashed with
+  // "IllegalStateException: addViewAt: failed to insert view". Throttling
+  // tracksViewChanges to a brief flip every 400ms cuts that to ~2/sec per
+  // marker - still visibly pulsing, just stepped instead of silky-smooth,
+  // and safe.
+  const [pulseTrigger, setPulseTrigger] = useState(false);
+  useEffect(() => {
+    if (!hasClusterMarkers) return;
+    let offTimeout: ReturnType<typeof setTimeout>;
+    const interval = setInterval(() => {
+      setPulseTrigger(true);
+      offTimeout = setTimeout(() => setPulseTrigger(false), 50);
+    }, 400);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(offTimeout);
+    };
+  }, [hasClusterMarkers]);
+
   const panTo = (event: LocatedEvent) => {
     mapRef.current?.animateToRegion(
       { latitude: event.lat, longitude: event.lng, latitudeDelta: 0.006, longitudeDelta: 0.006 },
@@ -166,6 +194,7 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
   const onCategoryChange = (next: Tag | 'all') => {
     setCategory(next);
     setSelectedId(null);
+    trackEvent('category_filter_selected', { category: next, screen: 'map' });
   };
 
   // Matches the reference: clicking a cluster computes bounds and zooms in
@@ -240,7 +269,7 @@ export default function MapScreen({ events, onOpenDetail, onSearchPress, directi
               title={title}
               onPress={() => onMarkerPress(marker.lat, marker.lng, marker.events, marker.isCluster)}
               anchor={marker.isCluster ? CLUSTER_ANCHOR : zoomedIn ? CAPSULE_ANCHOR : PIN_ANCHOR}
-              tracksViewChanges={selected || marker.isCluster || zoomedIn}
+              tracksViewChanges={selected || zoomedIn || (marker.isCluster && pulseTrigger)}
             >
               <EventMapCard events={marker.events} selectedEventId={selectedId} zoomedIn={zoomedIn} />
             </Marker>

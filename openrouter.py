@@ -7,7 +7,7 @@ TAGS = [
     "food", "mental-health", "social", "dance", "spiritual", "sports", "greek life", "volunteering"
 ]
 def event_text(e: dict) -> str:
-    return f"Name: {e.get('name', '')}\nDate: {e.get('date', '')}\nDescription: {e.get('description', '')}"
+    return f"Name: {e.get('name', '')}\nDate: {e.get('date', '')}\nLocation: {e.get('buildingName', '')}\nDescription: {e.get('description', '')}"
 
 SYSTEM_PROMPT = f"""You tag GW campus events with topic labels for a student events app.
 Allowed tags (use ONLY these, spelled exactly as given):

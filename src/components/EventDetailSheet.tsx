@@ -81,7 +81,7 @@ export default function EventDetailSheet({
             <View style={styles.detailIcon}>
               <Icon name="pin" size={18} color={color.accent700} />
             </View>
-            <View>
+            <View style={styles.detailTextGroup}>
               <Text style={styles.detailText}>{event.buildingName}</Text>
               {dist ? <Text style={styles.detailSub}>{dist}</Text> : null}
             </View>
@@ -152,7 +152,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailText: { fontFamily: font.bodySemibold, fontSize: 13.5, color: color.neutral800 },
+  // Without flex:1 here, this View (a row sibling of the fixed-width icon)
+  // sizes to its content instead of the remaining row width, so a long
+  // building name just grows past the sheet edge and gets clipped instead
+  // of wrapping.
+  detailTextGroup: { flex: 1 },
+  detailText: { fontFamily: font.bodySemibold, fontSize: 13.5, color: color.neutral800, flexShrink: 1 },
   detailSub: { fontFamily: font.bodySemibold, fontSize: 11, color: color.neutral600, marginTop: 2 },
   description: { fontFamily: font.body, fontSize: 14, lineHeight: 22, color: color.text, marginTop: 10 },
   askScout: {

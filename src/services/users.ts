@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { getFirestore, doc, getDoc, onSnapshot, setDoc, updateDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { trackEvent } from './analytics';
 
 // Anonymous sign-in (useAuth.ts) gives every install a uid but no Firestore
 // doc - creates the minimal users/{uid} profile this app actually reads/
@@ -79,6 +80,7 @@ export async function getUserInterests(userId: string): Promise<string[]> {
 
 export async function updateUserInterests(userId: string, interests: string[]): Promise<void> {
   await updateProfileFields(userId, { interests });
+  trackEvent('profile_field_updated', { field: 'interests' });
 }
 
 // Written both nightly (scraper/recommend.js) and reactively on every
@@ -106,6 +108,7 @@ export async function getUserBio(userId: string): Promise<string> {
 
 export async function updateUserBio(userId: string, bio: string): Promise<void> {
   await updateProfileFields(userId, { bio });
+  trackEvent('profile_field_updated', { field: 'bio' });
 }
 
 // Explicit signal (declared major + class year) alongside the inferred one
@@ -119,6 +122,7 @@ export async function getUserMajor(userId: string): Promise<string> {
 
 export async function updateUserMajor(userId: string, major: string): Promise<void> {
   await updateProfileFields(userId, { major });
+  trackEvent('profile_field_updated', { field: 'major' });
 }
 
 export async function getUserClassYear(userId: string): Promise<string | null> {
@@ -129,6 +133,7 @@ export async function getUserClassYear(userId: string): Promise<string | null> {
 
 export async function updateUserClassYear(userId: string, classYear: string): Promise<void> {
   await updateDoc(doc(getFirestore(), 'users', userId), { classYear });
+  trackEvent('profile_field_updated', { field: 'classYear' });
 }
 
 // Same notificationToken/tokenLastUpdated/platform fields the Unity app's

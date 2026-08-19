@@ -39,9 +39,12 @@ function generateBuildingId() {
 
 
 // Same shape as openrouter.py's event_text() - keeps the tagger and the
-// embedder scoring the same textual representation of an event.
-function eventEmbedText(event) {
-  return `Name: ${event.name || ""}\nDate: ${event.date || ""}\nDescription: ${event.description || ""}`;
+// embedder scoring the same textual representation of an event. Location
+// is included so building/location-referencing queries (Scout, "what's
+// happening at the Quad") have real signal in the embedding itself, not
+// just literal-string matching against buildingName at query time.
+function eventEmbedText(event, building) {
+  return `Name: ${event.name || ""}\nDate: ${event.date || ""}\nLocation: ${building?.buildingName || ""}\nDescription: ${event.description || ""}`;
 }
 
 function reconcileEvent(event, building, tags, embedding) {
@@ -267,7 +270,7 @@ app.post("/api/upload", async (req, res) => {
     // event - embedded once here and stored on the doc; recommend.js reads
     // it back rather than re-embedding events on every nightly run.
     const embeddings = nonDuplicateEntries.length
-      ? await embedTexts(nonDuplicateEntries.map(({ event }) => eventEmbedText(event)))
+      ? await embedTexts(nonDuplicateEntries.map(({ event, building }) => eventEmbedText(event, building)))
       : [];
 
     let nonDuplicateIndex = 0;

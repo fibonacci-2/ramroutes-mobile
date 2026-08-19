@@ -33,12 +33,7 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyBf6XU9a9CnFwW4nYsUYXMRV_i7_X9sxgo"
-        }
-      }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -57,7 +52,8 @@
       [
         "react-native-maps",
         {
-          "iosGoogleMapsApiKey": "AIzaSyCc8mhgaducR12eYuXQm-ZNbx_o1GbmeMM"
+          "iosGoogleMapsApiKey": "AIzaSyCc8mhgaducR12eYuXQm-ZNbx_o1GbmeMM",
+          "androidGoogleMapsApiKey": "AIzaSyBf6XU9a9CnFwW4nYsUYXMRV_i7_X9sxgo"
         }
       ],
       [
@@ -76,7 +72,9 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "@react-native-firebase/analytics",
+      "@react-native-firebase/crashlytics"
     ]
   }
 }

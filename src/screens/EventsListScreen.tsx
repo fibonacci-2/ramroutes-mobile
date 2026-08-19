@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import CategoryChips from '../components/CategoryChips';
 import EventRow from '../components/EventRow';
@@ -9,6 +9,7 @@ import { EventWithLocation } from '../hooks/useEvents';
 import { useInterests } from '../hooks/useInterests';
 import { useRecommendedEvents } from '../hooks/useRecommendedEvents';
 import { useUserLocation } from '../hooks/useUserLocation';
+import { trackEvent } from '../services/analytics';
 import { setInterested } from '../services/buildingEvents';
 import { color, font, radius, shadow } from '../theme';
 import { rankRecommended } from '../utils/personalization';
@@ -30,6 +31,18 @@ export default function EventsListScreen({ events, userId, onOpenDetail }: Props
   const filtered = events
     .filter((e) => category === 'all' || e.tags?.includes(category))
     .filter((e) => !q || `${e.eventName} ${e.buildingName} ${(e.tags ?? []).join(' ')}`.toLowerCase().includes(q));
+
+  // Debounced so this fires once after the user pauses typing, not once per
+  // keystroke - and logs only metadata (length, result count), never the
+  // raw query text, since search terms are free-form user input.
+  useEffect(() => {
+    if (!q) return;
+    const timer = setTimeout(() => {
+      trackEvent('app_search', { query_length: q.length, result_count: filtered.length });
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   // Prefers scraper/recommend.js's nightly tagOverlap + embedding-similarity
   // ranking; falls back to local tag overlap if that hasn't run for this
@@ -55,7 +68,13 @@ export default function EventsListScreen({ events, userId, onOpenDetail }: Props
       </View>
 
       <View style={styles.chipsRow}>
-        <CategoryChips selected={category} onSelect={setCategory} />
+        <CategoryChips
+          selected={category}
+          onSelect={(c) => {
+            setCategory(c);
+            trackEvent('category_filter_selected', { category: c, screen: 'list' });
+          }}
+        />
       </View>
 
       <FlatList
