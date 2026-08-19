@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from 'react';
+import { Animated, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from '../components/Icon';
 import { primaryTagStyle } from '../constants/tagStyles';
 import { EventWithLocation } from '../hooks/useEvents';
@@ -7,7 +7,7 @@ import { askScout, ScoutHistoryMessage } from '../services/scout';
 import { color, font, radius, shadow } from '../theme';
 import { byId } from '../utils/byId';
 
-type Message = { id: string; role: 'ai' | 'me'; text: string; eventIds?: string[]; typing?: boolean };
+export type Message = { id: string; role: 'ai' | 'me'; text: string; eventIds?: string[]; typing?: boolean };
 
 const QUICK_PROMPTS = ['What’s happening around campus?', 'Anything career related?', 'Something fun', 'Where can I volunteer?'];
 
@@ -19,21 +19,25 @@ const newId = () => `${Date.now()}-${nextId++}`;
 
 type Props = {
   events: EventWithLocation[];
+  messages: Message[];
+  setMessages: Dispatch<SetStateAction<Message[]>>;
   seedMessage: string | null;
   onSeedConsumed: () => void;
   onOpenDetail: (eventId: string) => void;
 };
 
-export default function ScoutScreen({ events, seedMessage, onSeedConsumed, onOpenDetail }: Props) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ScoutScreen({ events, messages, setMessages, seedMessage, onSeedConsumed, onOpenDetail }: Props) {
   const [input, setInput] = useState('');
   const listRef = useRef<FlatList<Message>>(null);
-  const started = useRef(false);
 
+  // messages is now owned by RootShell so it survives tab switches instead
+  // of resetting every time this screen unmounts - guard the greeting on
+  // the list being empty (not a mount-only ref) so it still only fires once
+  // per real conversation, not once per remount.
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
+    if (messages.length > 0) return;
     aiSay('Hey! I’m Scout — I know what’s happening around campus. Ask me for recommendations, or tap a suggestion below.');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -122,6 +126,7 @@ export default function ScoutScreen({ events, seedMessage, onSeedConsumed, onOpe
         data={QUICK_PROMPTS}
         keyExtractor={(q) => q}
         showsHorizontalScrollIndicator={false}
+        style={styles.quickRowOuter}
         contentContainerStyle={styles.quickRow}
         renderItem={({ item }) => (
           <Pressable style={styles.quickChip} onPress={() => sendMessage(item)}>
@@ -147,11 +152,48 @@ export default function ScoutScreen({ events, seedMessage, onSeedConsumed, onOpe
   );
 }
 
+// Three dots bouncing in a wave while Scout's reply is generating. Each
+// dot's sequence (delay, up, down, delay) sums to the same 760ms cycle
+// length with a different lead-in delay, so the stagger between dots stays
+// locked in phase forever instead of drifting apart loop to loop.
+const DOT_CYCLE_MS = 760;
+const DOT_BOUNCE_MS = 200;
+const DOT_OFFSETS_MS = [0, 120, 240];
+
+function TypingDots() {
+  const dots = useRef(DOT_OFFSETS_MS.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    const loops = dots.map((value, i) => {
+      const offset = DOT_OFFSETS_MS[i];
+      const tail = DOT_CYCLE_MS - offset - DOT_BOUNCE_MS * 2;
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(offset),
+          Animated.timing(value, { toValue: -5, duration: DOT_BOUNCE_MS, useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration: DOT_BOUNCE_MS, useNativeDriver: true }),
+          Animated.delay(tail),
+        ])
+      );
+    });
+    loops.forEach((loop) => loop.start());
+    return () => loops.forEach((loop) => loop.stop());
+  }, [dots]);
+
+  return (
+    <View style={styles.typingRow}>
+      {dots.map((value, i) => (
+        <Animated.View key={i} style={[styles.typingDot, { transform: [{ translateY: value }] }]} />
+      ))}
+    </View>
+  );
+}
+
 function MessageBubble({ message, events, onOpenDetail }: { message: Message; events: EventWithLocation[]; onOpenDetail: (id: string) => void }) {
   if (message.typing) {
     return (
       <View style={[styles.bubble, styles.bubbleAi]}>
-        <Text style={styles.typingDots}>• • •</Text>
+        <TypingDots />
       </View>
     );
   }
@@ -192,13 +234,18 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: font.heading, fontSize: 22, color: color.text },
   headerSub: { fontFamily: font.bodySemibold, fontSize: 11, color: color.accent2_700 },
   messages: { flex: 1 },
-  messagesContent: { padding: 16, paddingBottom: 10, gap: 10 },
+  // flexGrow + justifyContent anchor short conversations to the bottom of
+  // the scroll area (right above the quick prompts) instead of floating at
+  // the top and leaving a dead gap below - the FlatList still scrolls
+  // normally once content overflows.
+  messagesContent: { flexGrow: 1, justifyContent: 'flex-end', padding: 16, paddingBottom: 10, gap: 10 },
   bubble: { maxWidth: '78%', paddingVertical: 11, paddingHorizontal: 15, borderRadius: 22, marginBottom: 8 },
   bubbleAi: { alignSelf: 'flex-start', backgroundColor: 'white', borderBottomLeftRadius: 8, ...shadow.sm },
   bubbleMe: { alignSelf: 'flex-end', backgroundColor: color.accent, borderBottomRightRadius: 8 },
   bubbleTextAi: { fontFamily: font.body, fontSize: 13.5, lineHeight: 19, color: color.text },
   bubbleTextMe: { fontFamily: font.body, fontSize: 13.5, lineHeight: 19, color: 'white' },
-  typingDots: { color: color.neutral500, fontSize: 16, letterSpacing: 2 },
+  typingRow: { flexDirection: 'row', gap: 5, paddingVertical: 3, paddingHorizontal: 2 },
+  typingDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: color.neutral500 },
   eventChip: {
     alignSelf: 'flex-start',
     width: '82%',
@@ -216,6 +263,13 @@ const styles = StyleSheet.create({
   eventChipIcon: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   eventChipTitle: { fontFamily: font.bodyBold, fontSize: 13.5, color: color.text },
   eventChipMeta: { fontFamily: font.bodySemibold, fontSize: 11, color: color.neutral600, marginTop: 2 },
+  // ScrollView's default base style bakes in flexGrow:1/flexShrink:1 on the
+  // outer scroll container - without this override, this horizontal
+  // FlatList silently grows to fill the flex column right alongside
+  // `messages` (also flex:1), leaving the actual chip row stranded, vertically
+  // centered in a huge empty band instead of sitting content-height-tall
+  // right above the composer.
+  quickRowOuter: { flexGrow: 0, flexShrink: 0 },
   quickRow: { gap: 8, paddingHorizontal: 16, paddingVertical: 8, alignItems: 'center' },
   quickChip: { borderWidth: 1.5, borderColor: color.accent300, backgroundColor: color.accent100, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 13 },
   quickChipText: { fontFamily: font.bodyBold, fontSize: 12, color: color.accent800 },

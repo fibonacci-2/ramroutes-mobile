@@ -12,7 +12,7 @@ import EventsListScreen from './EventsListScreen';
 import MapScreen from './MapScreen';
 import PreferencesScreen from './PreferencesScreen';
 import SavedScreen from './SavedScreen';
-import ScoutScreen from './ScoutScreen';
+import ScoutScreen, { Message as ScoutMessage } from './ScoutScreen';
 
 type Tab = 'map' | 'list' | 'chat' | 'profile';
 
@@ -33,6 +33,9 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
   const [tab, setTab] = useState<Tab>('map');
   const [detailEventId, setDetailEventId] = useState<string | null>(null);
   const [chatSeed, setChatSeed] = useState<string | null>(null);
+  // Owned here, not inside ScoutScreen, so the conversation survives
+  // switching tabs instead of resetting every time ScoutScreen unmounts.
+  const [scoutMessages, setScoutMessages] = useState<ScoutMessage[]>([]);
   const [directionsEventId, setDirectionsEventId] = useState<string | null>(null);
   const [savedVisible, setSavedVisible] = useState(false);
 
@@ -79,6 +82,8 @@ export default function RootShell({ userId, schoolId, onChangeSchool }: Props) {
         {tab === 'chat' && (
           <ScoutScreen
             events={events}
+            messages={scoutMessages}
+            setMessages={setScoutMessages}
             seedMessage={chatSeed}
             onSeedConsumed={() => setChatSeed(null)}
             onOpenDetail={openDetail}
