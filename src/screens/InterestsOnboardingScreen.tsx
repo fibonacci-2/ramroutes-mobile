@@ -7,6 +7,12 @@ import { color, font, radius, shadow } from '../theme';
 
 type Props = {
   onDone: () => void;
+  // Lets a student who picked the wrong school back out of this step and
+  // reselect it, before onDone locks the flow into RootShell - previously
+  // there was no way back to SchoolPickerScreen once a school was chosen
+  // until they were already inside the app and dug up the "School" row in
+  // Preferences.
+  onBack: () => void;
 };
 
 // Shown once, between school selection and the main app (see AppGate) -
@@ -17,11 +23,15 @@ type Props = {
 // tags picked here already show as selected if they open Preferences
 // afterward - one Firestore-backed source of truth, not a separate
 // onboarding-only draft.
-export default function InterestsOnboardingScreen({ onDone }: Props) {
+export default function InterestsOnboardingScreen({ onDone, onBack }: Props) {
   const { selected, toggleTag } = useInterests();
 
   return (
     <View style={styles.screen}>
+      <Pressable style={styles.backBtn} onPress={onBack} hitSlop={10}>
+        <Icon name="back" size={20} color={color.text} />
+      </Pressable>
+
       <View style={styles.header}>
         <View style={styles.icon}>
           <Icon name="heart" size={28} color={color.accent700} />
@@ -60,6 +70,19 @@ export default function InterestsOnboardingScreen({ onDone }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.bg },
+  backBtn: {
+    position: 'absolute',
+    top: 56,
+    left: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'white',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    ...shadow.sm,
+  },
   header: { alignItems: 'center', paddingTop: 90, paddingHorizontal: 30, paddingBottom: 20 },
   icon: {
     width: 64,

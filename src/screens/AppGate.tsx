@@ -9,14 +9,27 @@ import InterestsOnboardingScreen from './InterestsOnboardingScreen';
 import RootShell from './RootShell';
 import SchoolPickerScreen from './SchoolPickerScreen';
 
+type Props = {
+  // Fires once, the first moment AppGate has something real to show
+  // (any of the error/SchoolPicker/InterestsOnboarding/RootShell branches
+  // below) instead of the loading spinner. App.tsx uses this to hold the
+  // animated splash up for exactly as long as loading actually takes,
+  // instead of a fixed timer that a slow network can outlast - the whole
+  // point being that the plain ActivityIndicator branch here should never
+  // actually be seen.
+  onReady?: () => void;
+};
+
 // Orchestrates the one-time flow before the app is usable: anonymous
 // sign-in (useAuth) -> Firestore profile creation -> "what's your school"
 // -> "what are you into" (only asked once each, stored on the profile) ->
 // the real app.
-export default function AppGate() {
+export default function AppGate({ onReady }: Props) {
   const { userId, error } = useAuth();
   const [schoolId, setSchoolId] = useState<string | null | undefined>(undefined);
   const [interestsOnboarded, setInterestsOnboarded] = useState<boolean | undefined>(undefined);
+
+  const isLoading = !error && (!userId || schoolId === undefined || interestsOnboarded === undefined);
 
   useEffect(() => {
     if (!userId) return;
@@ -35,6 +48,11 @@ export default function AppGate() {
     if (!userId || schoolId === undefined) return;
     identifyUser(userId, schoolId);
   }, [userId, schoolId]);
+
+  useEffect(() => {
+    if (!isLoading) onReady?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
 
   if (error) {
     return (
@@ -74,6 +92,10 @@ export default function AppGate() {
           markInterestsOnboarded(userId);
           setInterestsOnboarded(true);
           trackEvent('interests_onboarding_completed');
+        }}
+        onBack={() => {
+          setSchoolId(null);
+          trackEvent('onboarding_school_back');
         }}
       />
     );

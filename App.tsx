@@ -11,10 +11,11 @@ import AppGate from './src/screens/AppGate';
 import { initAnalytics } from './src/services/analytics';
 
 // Full entrance sequence (icon settle -> wordmark -> tagline) finishes by
-// ~1450ms - see AnimatedSplash.tsx's timeline comment. Holding a bit past
-// that lets the ambient glow/ring loop breathe at least once before fading
-// out, so the transition never lands mid-entrance no matter how fast
-// AppGate's own auth/data loading resolves underneath it.
+// ~1450ms - see AnimatedSplash.tsx's timeline comment. This is a floor, not
+// the actual hide trigger: the splash also waits on AppGate's onReady (see
+// below), so a slow network extends the splash instead of it disappearing
+// early into AppGate's own loading spinner. This floor just stops a fast,
+// fully-cached load from cutting the entrance animation off mid-flight.
 const MIN_SPLASH_MS = 1800;
 const FADE_MS = 300;
 
@@ -26,6 +27,8 @@ export default function App() {
     Figtree_700Bold,
   });
   const [showSplash, setShowSplash] = useState(true);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
+  const [appGateReady, setAppGateReady] = useState(false);
   const splashOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -40,20 +43,28 @@ export default function App() {
     // app.json's splash backgroundColor exactly, so there's no visible
     // swap, just static handing off to animated.
     SplashScreen.hideAsync();
-    const timer = setTimeout(() => {
-      Animated.timing(splashOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true }).start(() => {
-        setShowSplash(false);
-      });
-    }, MIN_SPLASH_MS);
+    const timer = setTimeout(() => setMinTimeElapsed(true), MIN_SPLASH_MS);
     return () => clearTimeout(timer);
   }, [fontsLoaded]);
+
+  // Only fades once BOTH the entrance animation has had time to play AND
+  // AppGate has real content ready - whichever finishes last. That's what
+  // stops AppGate's ActivityIndicator from ever showing: the splash simply
+  // stays up for as long as loading actually takes instead of a fixed
+  // timer a slow connection could outlast.
+  useEffect(() => {
+    if (!minTimeElapsed || !appGateReady || !showSplash) return;
+    Animated.timing(splashOpacity, { toValue: 0, duration: FADE_MS, useNativeDriver: true }).start(() => {
+      setShowSplash(false);
+    });
+  }, [minTimeElapsed, appGateReady, showSplash, splashOpacity]);
 
   if (!fontsLoaded) return null;
 
   return (
     <ErrorBoundary>
       <View style={styles.root}>
-        <AppGate />
+        <AppGate onReady={() => setAppGateReady(true)} />
         <StatusBar style="dark" />
         {showSplash && (
           <Animated.View style={[StyleSheet.absoluteFill, { opacity: splashOpacity }]}>
