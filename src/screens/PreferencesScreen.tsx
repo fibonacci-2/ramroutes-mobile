@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from '../components/Icon';
+import ProfileCompletionRing from '../components/ProfileCompletionRing';
 import { CLASS_YEARS } from '../constants/classYears';
 import { AVAILABLE_TAGS } from '../constants/tags';
 import { TAG_STYLES } from '../constants/tagStyles';
@@ -8,6 +10,7 @@ import { useSchools } from '../hooks/useSchools';
 import { useStudentProfile } from '../hooks/useStudentProfile';
 import { useUserBio } from '../hooks/useUserBio';
 import { color, font, radius, shadow } from '../theme';
+import { computeProfileCompletion } from '../utils/profileCompletion';
 
 type Props = {
   schoolId: string;
@@ -23,10 +26,17 @@ export default function PreferencesScreen({ schoolId, onChangeSchool }: Props) {
 
   const schoolName = schools.find((s) => s.id === schoolId)?.schoolName ?? 'Select a school';
 
+  const completion = useMemo(
+    () => computeProfileCompletion(bio, major, selected.size, classYear),
+    [bio, major, selected, classYear]
+  );
+
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.headerTitle}>Preferences</Text>
+
+        <ProfileCompletionRing percent={completion} />
 
         <Pressable style={styles.menuRow} onPress={onChangeSchool}>
           <View style={styles.menuRowIcon}>

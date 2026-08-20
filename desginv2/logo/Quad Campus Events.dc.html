@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta charset="utf-8">
+<title>Quad — campus events around you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo:wght@400&family=Figtree:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html,body{height:100%;margin:0}
+  body{display:flex;align-items:center;justify-content:center;overflow:hidden;font-family:"Figtree",system-ui,sans-serif}
+  @keyframes bnc{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+  @keyframes pulseGlow{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:.85;transform:scale(1.06)}}
+  @keyframes pulseRing{0%{opacity:.85;transform:scale(.65)}80%,100%{opacity:0;transform:scale(1.4)}}
+  .leaflet-control-attribution{font-size:8px;opacity:.75}
+</style>
+</helmet>
+<div style="--color-bg:#f5ead8;--color-surface:#ebddc5;--color-text:#201e1d;--color-accent:#c67139;--color-accent-2:#7a8a5e;--color-divider:color-mix(in srgb, #201e1d 16%, transparent);--color-neutral-100:#f9f4ed;--color-neutral-200:#eee7db;--color-neutral-300:#dcd3c4;--color-neutral-400:#c0b6a5;--color-neutral-500:#a19786;--color-neutral-600:#82796a;--color-neutral-700:#645c50;--color-neutral-800:#474238;--color-neutral-900:#2e2b25;--color-accent-100:#fff2eb;--color-accent-200:#ffe1d0;--color-accent-300:#ffc6a5;--color-accent-400:#f6a06b;--color-accent-500:#d67f48;--color-accent-600:#b2622d;--color-accent-700:#8c491a;--color-accent-800:#643312;--color-accent-900:#402310;--color-accent-2-100:#f0fae1;--color-accent-2-200:#e1eecc;--color-accent-2-300:#ccdbb2;--color-accent-2-400:#aebf92;--color-accent-2-500:#8fa073;--color-accent-2-600:#728157;--color-accent-2-700:#56633f;--color-accent-2-800:#3d472b;--color-accent-2-900:#272e1b;--font-heading:'Caprasimo',system-ui,sans-serif;--font-body:'Figtree',system-ui,sans-serif;--radius-sm:8px;--radius-md:16px;--radius-lg:28px;--shadow-sm:0 1px 2px color-mix(in srgb, #2e2b25 14%, transparent);--shadow-md:0 3px 10px color-mix(in srgb, #2e2b25 16%, transparent);--shadow-lg:0 12px 32px color-mix(in srgb, #2e2b25 22%, transparent);display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;height:100%">
+  <div id="qc-phone" style="width:393px;height:852px;background:#171412;border-radius:60px;padding:11px;box-shadow:var(--shadow-lg), 0 40px 80px color-mix(in srgb,#2e2b25 25%,transparent);flex:none;transform-origin:center">
+    <div id="qc-screen" style="position:relative;width:100%;height:100%;border-radius:49px;overflow:hidden;background:var(--color-bg);display:flex;flex-direction:column;color:var(--color-text);font-family:var(--font-body)">
+      <div style="position:absolute;top:11px;left:50%;transform:translateX(-50%);width:118px;height:34px;background:#171412;border-radius:20px;z-index:60"></div>
+      <div style="flex:none;height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 6px;font-weight:700;font-size:15px;z-index:55;position:relative"><span>9:41</span><span style="display:flex;align-items:center;gap:6px" id="qc-sbicons"></span></div>
+      <div style="flex:1;position:relative;min-height:0;overflow:hidden">
+        <div style="position:absolute;inset:0;display:none" id="qc-v-map">
+          <div id="qc-map" style="position:absolute;inset:0;z-index:1;background:#e8e0cf"></div>
+          <div style="position:absolute;top:64px;left:14px;right:14px;z-index:40;display:flex;flex-direction:column;gap:10px;pointer-events:none">
+            <button id="qc-mapsearch" style="pointer-events:auto;display:flex;align-items:center;gap:10px;background:white;border-radius:999px;padding:12px 16px;box-shadow:var(--shadow-md);color:var(--color-neutral-600);font-weight:600;font-size:14px;border:none;width:100%;cursor:pointer;font-family:var(--font-body)" data-hbg="var(--color-accent-100)"><span id="qc-i-search"></span>Search events near campus…</button>
+            <div id="qc-mapchips" style="display:flex;gap:8px;overflow-x:auto;pointer-events:auto;padding-bottom:2px"></div>
+          </div>
+          <button id="qc-locbtn" title="My location" style="position:absolute;right:14px;bottom:196px;z-index:40;width:44px;height:44px;border-radius:999px;background:white;border:none;box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:center;color:var(--color-accent-700);cursor:pointer" data-hbg="var(--color-accent-100)"></button>
+          <div id="qc-cardrail" style="position:absolute;left:0;right:0;bottom:12px;z-index:40;display:flex;gap:10px;overflow-x:auto;padding:6px 14px"></div>
+        </div>
+        <div style="position:absolute;inset:0;display:none;flex-direction:column;min-height:0" id="qc-v-list">
+          <div style="flex:none;padding:10px 20px 6px"><h2 style="font-family:var(--font-heading);font-weight:400;font-size:27px;margin:0">Events near you</h2></div>
+          <div style="display:flex;align-items:center;gap:10px;background:white;border-radius:999px;padding:11px 16px;margin:10px 20px 4px;box-shadow:var(--shadow-sm)"><span id="qc-i-search2"></span><input id="qc-q" placeholder="Career fair, jazz, volleyball…" style="border:none;outline:none;flex:1;font-family:var(--font-body);font-size:14px;font-weight:600;background:none;color:var(--color-text)"></div>
+          <div id="qc-dayseg" style="display:flex;gap:6px;margin:10px 20px;background:var(--color-surface);border-radius:999px;padding:4px"></div>
+          <div id="qc-listchips" style="display:flex;gap:8px;overflow-x:auto;padding:0 20px 4px"></div>
+          <div id="qc-list" style="flex:1;overflow-y:auto;min-height:0"></div>
+        </div>
+        <div style="position:absolute;inset:0;display:none;flex-direction:column;min-height:0" id="qc-v-chat">
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 20px 8px"><div id="qc-i-spark" style="width:40px;height:40px;border-radius:16px;background:var(--color-accent-2-200);color:var(--color-accent-2-800);display:flex;align-items:center;justify-content:center"></div><div><h2 style="font-family:var(--font-heading);font-weight:400;font-size:22px;margin:0">Scout</h2><small style="font-weight:600;font-size:11px;color:var(--color-accent-2-700)">Your event assistant</small></div></div>
+          <div id="qc-msgs" style="flex:1;overflow-y:auto;min-height:0;padding:14px 16px 10px;display:flex;flex-direction:column;gap:10px"></div>
+          <div id="qc-qchips" style="flex:none;display:flex;gap:8px;overflow-x:auto;padding:8px 16px"></div>
+          <div style="flex:none;display:flex;gap:8px;padding:8px 14px 12px"><input id="qc-chatin" placeholder="Ask for a recommendation…" style="flex:1;border:none;outline:none;background:white;border-radius:999px;padding:13px 18px;font-family:var(--font-body);font-size:13.5px;font-weight:600;box-shadow:var(--shadow-sm);color:var(--color-text)"><button id="qc-sendbtn" style="flex:none;width:46px;height:46px;border-radius:99px;border:none;background:var(--color-accent);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer" data-hbg="var(--color-accent-600)"></button></div>
+        </div>
+        <div style="position:absolute;inset:0;display:none;flex-direction:column;min-height:0" id="qc-v-saved">
+          <div style="flex:none;padding:10px 20px 6px"><h2 style="font-family:var(--font-heading);font-weight:400;font-size:27px;margin:0">Saved</h2></div>
+          <div id="qc-savedlist" style="flex:1;overflow-y:auto;min-height:0"></div>
+        </div>
+        <div id="qc-detail" style="position:absolute;inset:0;z-index:70;background:var(--color-bg);display:flex;flex-direction:column;transform:translateY(103%);visibility:hidden;transition:transform .32s cubic-bezier(.32,.72,.25,1), visibility .32s"></div>
+        <div id="qc-toast" style="position:absolute;bottom:110px;left:50%;transform:translateX(-50%) translateY(12px);background:var(--color-text);color:var(--color-bg);font-size:12.5px;font-weight:700;padding:10px 18px;border-radius:999px;z-index:80;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap"></div>
+      </div>
+      <div id="qc-tabbar" style="flex:none;display:flex;justify-content:space-around;align-items:center;padding:8px 14px 24px;background:color-mix(in srgb,var(--color-bg) 88%, white);border-top:1px solid var(--color-divider);z-index:50"></div>
+      <div style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:140px;height:5px;border-radius:99px;background:var(--color-text);opacity:.85;z-index:60"></div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() {
+    const root = document;
+    const $ = id => document.getElementById(id);
+
+    const IC = {
+      map:'<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>',
+      cal:'<rect x="3" y="4" width="18" height="18" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+      chat:'<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>',
+      bookmark:'<path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>',
+      search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+      clock:'<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+      pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+      brief:'<rect x="2" y="7" width="20" height="14" rx="4"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+      trophy:'<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+      users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+      heart:'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+      book:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+      spark:'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>',
+      send:'<path d="m22 2-11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+      back:'<path d="m15 18-6-6 6-6"/>',
+      nav:'<path d="M3 11l19-9-9 19-2-8-8-2z"/>',
+      locate:'<line x1="2" x2="5" y1="12" y2="12"/><line x1="19" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="5"/><line x1="12" x2="12" y1="19" y2="22"/><circle cx="12" cy="12" r="7"/>',
+      wifi:'<path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M12 20h.01"/>',
+      cell:'<path d="M2 20h.01M7 20v-4M12 20v-8M17 20V8M22 4v16"/>',
+      batt:'<rect x="2" y="7" width="16" height="10" rx="3"/><line x1="22" x2="22" y1="11" y2="13"/>'
+    };
+    const icon = (n, s = 20, w = 2.75) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
+
+    const CATS = {
+      career:{label:'Career', ic:'brief', bg:'#c67139', tint:'var(--color-accent-200)', ink:'var(--color-accent-800)'},
+      sports:{label:'Sports', ic:'trophy', bg:'#7a8a5e', tint:'var(--color-accent-2-200)', ink:'var(--color-accent-2-800)'},
+      clubs:{label:'Clubs', ic:'users', bg:'#b2622d', tint:'var(--color-accent-200)', ink:'var(--color-accent-800)'},
+      workshops:{label:'Workshops', ic:'book', bg:'#56633f', tint:'var(--color-accent-2-200)', ink:'var(--color-accent-2-800)'},
+      shows:{label:'Shows', ic:'music', bg:'#8c491a', tint:'var(--color-accent-200)', ink:'var(--color-accent-800)'},
+      volunteer:{label:'Volunteer', ic:'heart', bg:'#728157', tint:'var(--color-accent-2-200)', ink:'var(--color-accent-2-800)'}
+    };
+    const HERE=[42.2770,-83.7382];
+    const EVENTS=[
+     {id:'expo',t:'Fall Career Expo',cat:'career',v:'Michigan Union, Rogel Ballroom',ll:[42.2749,-83.7420],day:'Fri',date:'Sep 18',time:'11:00 AM – 3:00 PM',sort:2,tags:['Free','120+ employers','Bring resumes'],desc:'The biggest recruiting event of the fall. 120+ companies across tech, consulting, healthcare and public service. Business casual suggested; free professional headshots 12–2.'},
+     {id:'resume',t:'Resume Clinic + Tech Talks',cat:'career',v:'Mason Hall, Room 1401',ll:[42.2772,-83.7402],day:'Tue',date:'Sep 22',time:'4:00 PM',sort:6,tags:['Free','Drop-in','1:1 reviews'],desc:'Drop-in resume reviews with peer career advisors, followed by two short talks from recent grads in software and product roles. Come for 15 minutes or stay the whole time.'},
+     {id:'vball',t:'Volleyball vs. Ohio State',cat:'sports',v:'Cliff Keen Arena',ll:[42.2686,-83.7446],day:'Fri',date:'Sep 18',time:'7:00 PM',sort:2,tags:['Students free','Rivalry game'],desc:'Rivalry night. Student section opens at 6:15 — arrive early, it fills fast. Free rally towels for the first 500 students.'},
+     {id:'soccer',t:'Intramural Soccer Finals',cat:'sports',v:'Palmer Field',ll:[42.2814,-83.7331],day:'Sat',date:'Sep 19',time:'2:00 PM',sort:3,tags:['Free','Outdoor'],desc:'Championship matches for the fall IM soccer bracket. Bring a blanket; food trucks parked on Washtenaw side from 1:30.'},
+     {id:'robot',t:'Robotics Club Open House',cat:'clubs',v:'Chemistry Building, Atrium',ll:[42.2781,-83.7369],day:'Thu',date:'Sep 17',time:'6:00 PM',sort:1,tags:['Free pizza','No experience needed'],desc:'Meet the build teams, drive last year\u2019s competition bot, and sign up for a fall project group. All majors welcome — design and outreach teams too.'},
+     {id:'salsa',t:'Salsa Club Social Night',cat:'clubs',v:'Michigan League Ballroom',ll:[42.2790,-83.7378],day:'Sat',date:'Sep 19',time:'8:00 PM',sort:3,tags:['Free','Beginner lesson 8pm'],desc:'Beginner lesson for the first hour, open dancing after. No partner or experience needed — shoes you can spin in help.'},
+     {id:'python',t:'Python for Data Workshop',cat:'workshops',v:'Hatcher Library, Lab 2',ll:[42.2764,-83.7382],day:'Mon',date:'Sep 21',time:'5:30 PM',sort:5,tags:['Free','Laptops provided','Beginner'],desc:'Hands-on intro to pandas and plotting with real campus datasets. Seats are limited to 40; waitlist opens at the door.'},
+     {id:'study',t:'Midterm Study Jam',cat:'workshops',v:'Shapiro Library, 3rd floor',ll:[42.2756,-83.7392],day:'Sun',date:'Sep 20',time:'7:00 PM',sort:4,tags:['Free coffee','Tutors on site'],desc:'Quiet floors, group rooms, and drop-in tutors for calc, orgo and stats. Coffee and snacks until midnight.'},
+     {id:'jazz',t:'Jazz Ensemble Night',cat:'shows',v:'Hill Auditorium',ll:[42.2794,-83.7391],day:'Sat',date:'Sep 19',time:'7:30 PM',sort:3,tags:['Students $5','Doors 7:00'],desc:'The university jazz ensemble with a guest trumpet soloist. Student rush tickets $5 at the door with ID.'},
+     {id:'improv',t:'Improv Comedy Show',cat:'shows',v:'Lydia Mendelssohn Theatre',ll:[42.2787,-83.7373],day:'Thu',date:'Sep 17',time:'9:00 PM',sort:1,tags:['Free','Late night'],desc:'The campus improv troupe\u2019s season opener. Suggestions from the audience drive every scene — sit up front if you want in.'},
+     {id:'arb',t:'Arb River Cleanup',cat:'volunteer',v:'Nichols Arboretum, main gate',ll:[42.2807,-83.7284],day:'Sun',date:'Sep 20',time:'9:00 AM',sort:4,tags:['Gloves provided','2 hrs'],desc:'Two-hour cleanup along the Huron River bank. Gloves, bags and grabbers provided; closed-toe shoes required. Counts for service hours.'},
+     {id:'pantry',t:'Food Pantry Pack-a-thon',cat:'volunteer',v:'Ginsberg Center',ll:[42.2734,-83.7362],day:'Mon',date:'Sep 21',time:'3:00 PM',sort:5,tags:['Service hours','Walk-in'],desc:'Help pack 400 grocery boxes for the campus food pantry. Walk-ins welcome; shifts are 45 minutes.'}
+    ];
+    const dist = ll => {const R=3958.8,d=x=>x*Math.PI/180,a=Math.sin(d(ll[0]-HERE[0])/2)**2+Math.cos(d(HERE[0]))*Math.cos(d(ll[0]))*Math.sin(d(ll[1]-HERE[1])/2)**2;return (2*R*Math.asin(Math.sqrt(a))).toFixed(1)};
+    const byId = id => EVENTS.find(e=>e.id===id);
+
+    const LSKEY='quad.saved.v1';
+    let saved = new Set(JSON.parse(localStorage.getItem(LSKEY)||'[]'));
+    let mapCat='all', listCat='all', dayF='all', query='', selId=null, tab='map';
+    const persist = () => localStorage.setItem(LSKEY, JSON.stringify([...saved]));
+
+    // hover wiring (event delegation) — replaces CSS :hover for injected markup
+    root.addEventListener('mouseover', e => {
+      const el = e.target.closest('[data-hbg]');
+      if (el && el.dataset.bbg === undefined) el.dataset.bbg = el.style.background || '';
+      if (el) el.style.background = el.dataset.hbg;
+    });
+    root.addEventListener('mouseout', e => {
+      const el = e.target.closest('[data-hbg]');
+      if (el) el.style.background = el.dataset.bbg;
+    });
+
+    $('qc-sbicons').innerHTML = icon('cell',15,2)+icon('wifi',15,2.5)+icon('batt',20,2);
+    $('qc-i-search').innerHTML = icon('search',17);
+    $('qc-i-search2').innerHTML = icon('search',17);
+    $('qc-i-spark').innerHTML = icon('spark',20);
+    $('qc-sendbtn').innerHTML = icon('send',18);
+    $('qc-locbtn').innerHTML = icon('locate',19);
+
+    const TABS=[['map','map','Map'],['list','cal','Events'],['chat','chat','Scout'],['saved','bookmark','Saved']];
+    const tabbar = $('qc-tabbar');
+    const tabStyle = on => `display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:700;color:${on?'var(--color-accent-700)':'var(--color-neutral-600)'};background:none;border:none;cursor:pointer;padding:6px 12px;border-radius:16px;font-family:var(--font-body)`;
+    const tabicStyle = on => `width:44px;height:28px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:${on?'var(--color-accent-200)':'transparent'}`;
+    function renderTabs(){tabbar.innerHTML=TABS.map(([id,ic,lb])=>`<button data-t="${id}" style="${tabStyle(id===tab)}"><span data-hbg="var(--color-accent-100)" style="${tabicStyle(id===tab)}">${icon(ic,19)}</span>${lb}</button>`).join('');}
+    renderTabs();
+    tabbar.onclick = e => { const b = e.target.closest('button[data-t]'); if (b) setTab(b.dataset.t); };
+    function setTab(t) {
+      tab = t;
+      renderTabs();
+      root.querySelectorAll('[id^="qc-v-"]').forEach(v => {
+        const on = v.id === 'qc-v-' + t;
+        v.style.display = on ? (v.id === 'qc-v-map' ? 'block' : 'flex') : 'none';
+      });
+      closeDetail();
+      if (t === 'map') setTimeout(() => map.invalidateSize(), 60);
+      if (t === 'list') renderList();
+      if (t === 'saved') renderSaved();
+      if (t === 'chat') initChat();
+    }
+
+    // ---- map ----
+    const map = L.map($('qc-map'), {zoomControl:false, attributionControl:true}).setView([42.2769,-83.7375], 15);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors',maxZoom:19}).addTo(map);
+    L.marker(HERE,{icon:L.divIcon({className:'',html:'<div style="width:18px;height:18px;border-radius:99px;background:var(--color-accent-2-600);border:3px solid white;box-shadow:0 0 0 6px color-mix(in srgb,var(--color-accent-2-500) 30%,transparent)"></div>',iconSize:[18,18],iconAnchor:[9,9]}),interactive:false,zIndexOffset:-100}).addTo(map);
+    let markers = {};
+
+    function pinHtml(ev, sel) {
+      const c = CATS[ev.cat];
+      return `<div style="width:36px;height:36px;border-radius:999px 999px 999px 6px;transform:rotate(-45deg)${sel?' scale(1.25)':''};display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(46,43,37,.35);border:2.5px solid #fff;transition:transform .15s;background:${c.bg}"><div style="transform:rotate(45deg)">${icon(c.ic,15,2.75).replace('stroke="currentColor"','stroke="#fff"')}</div></div>`;
+    }
+    function clusterSize(count) { return Math.min(78, 46 + count * 5); }
+    function clusterHtml(count) {
+      const size = clusterSize(count), inner = Math.round(size * 0.46);
+      return `<div style="position:relative;width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center">
+        <div style="position:absolute;inset:0;border-radius:999px;background:radial-gradient(circle, color-mix(in srgb, var(--color-accent) 85%, transparent) 0%, color-mix(in srgb, var(--color-accent) 30%, transparent) 62%, transparent 100%);animation:pulseGlow 2.6s ease-in-out infinite"></div>
+        <div style="position:absolute;inset:6px;border-radius:999px;border:1.5px solid color-mix(in srgb, var(--color-accent) 55%, transparent);animation:pulseRing 2.6s ease-in-out infinite"></div>
+        <div style="position:relative;width:${inner}px;height:${inner}px;border-radius:999px;background:var(--color-accent);box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:center;border:2.5px solid #fff">
+          <span style="font-family:var(--font-heading);font-size:${inner>34?17:14}px;color:#fff">${count}</span>
+        </div>
+      </div>`;
+    }
+    function computeClusters() {
+      const evs = EVENTS.filter(e => mapCat==='all' || e.cat===mapCat);
+      const pts = evs.map(e => ({ev:e, p: map.latLngToContainerPoint(e.ll)}));
+      const R = 52;
+      const used = new Array(pts.length).fill(false);
+      const clusters = [];
+      for (let i=0;i<pts.length;i++){
+        if (used[i]) continue;
+        const group=[pts[i]]; used[i]=true;
+        for (let j=i+1;j<pts.length;j++){
+          if (used[j]) continue;
+          if (pts[i].p.distanceTo(pts[j].p) < R) { group.push(pts[j]); used[j]=true; }
+        }
+        clusters.push(group);
+      }
+      return clusters;
+    }
+    function drawPins() {
+      Object.values(markers).forEach(m => map.removeLayer(m)); markers = {};
+      computeClusters().forEach(group => {
+        if (group.length > 1) {
+          const center = group.reduce((a,g)=>[a[0]+g.ev.ll[0], a[1]+g.ev.ll[1]],[0,0]).map(x=>x/group.length);
+          const size = clusterSize(group.length);
+          const m = L.marker(center,{icon:L.divIcon({className:'',html:clusterHtml(group.length),iconSize:[size,size],iconAnchor:[size/2,size/2]})}).addTo(map);
+          m.on('click', () => { const b = L.latLngBounds(group.map(g=>g.ev.ll)); map.flyToBounds(b,{padding:[46,46], maxZoom:18}); });
+          group.forEach(g => markers[g.ev.id] = m);
+        } else {
+          const ev = group[0].ev;
+          const m = L.marker(ev.ll,{icon:L.divIcon({className:'',html:pinHtml(ev, ev.id===selId),iconSize:[36,36],iconAnchor:[18,32]})}).addTo(map);
+          m.on('click', () => selectEvent(ev.id, true));
+          markers[ev.id] = m;
+        }
+      });
+    }
+    let redrawTmr;
+    map.on('zoomend moveend', () => { clearTimeout(redrawTmr); redrawTmr = setTimeout(drawPins, 30); });
+    function refreshPinStyles() { drawPins(); }
+
+    const chipStyle = on => `flex:none;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid ${on?'var(--color-text)':'var(--color-divider)'};background:${on?'var(--color-text)':'white'};font-family:var(--font-body);font-weight:700;font-size:12.5px;color:${on?'var(--color-bg)':'var(--color-text)'};cursor:pointer;box-shadow:var(--shadow-sm)`;
+    const chipRow = (el, cur, cb) => {
+      el.innerHTML = `<button data-c="all" style="${chipStyle(cur==='all')}" data-hbg="var(--color-accent-100)">All</button>` +
+        Object.entries(CATS).map(([k,c]) => `<button data-c="${k}" style="${chipStyle(cur===k)}" data-hbg="var(--color-accent-100)">${icon(c.ic,13)} ${c.label}</button>`).join('');
+      el.onclick = e => { const b = e.target.closest('button[data-c]'); if (b) cb(b.dataset.c); };
+    };
+    function setMapCat(c) { mapCat = c; selId = null; chipRow($('qc-mapchips'), c, setMapCat); drawPins(); renderRail(); }
+
+    const rail = $('qc-cardrail');
+    function railCard(ev) {
+      const c = CATS[ev.cat];
+      return `<div data-id="${ev.id}" style="flex:none;width:300px;background:white;border-radius:var(--radius-lg);box-shadow:var(--shadow-md);padding:14px;display:flex;gap:12px;align-items:center;cursor:pointer;border:2px solid ${ev.id===selId?'var(--color-accent)':'transparent'}">
+        <div style="flex:none;width:54px;height:54px;border-radius:20px;display:flex;align-items:center;justify-content:center;background:${c.tint};color:${c.ink}">${icon(c.ic,24)}</div>
+        <div style="min-width:0"><h5 style="margin:0 0 2px;font-size:15px;line-height:1.15">${ev.t}</h5><div style="font-size:11.5px;font-weight:600;color:var(--color-neutral-600);line-height:1.35">${ev.day} ${ev.date} · ${ev.time.split(' – ')[0]}<br>${ev.v} · ${dist(ev.ll)} mi</div></div>
+      </div>`;
+    }
+    function renderRail() {
+      const evs = EVENTS.filter(e => mapCat==='all' || e.cat===mapCat);
+      rail.innerHTML = evs.map(railCard).join('');
+      rail.querySelectorAll('[data-id]').forEach(c => c.onclick = () => { if (c.dataset.id===selId) openDetail(c.dataset.id); else selectEvent(c.dataset.id, false); });
+    }
+    let railTmr;
+    rail.addEventListener('scroll', () => {
+      clearTimeout(railTmr);
+      railTmr = setTimeout(() => {
+        const cards = [...rail.querySelectorAll('[data-id]')]; if (!cards.length) return;
+        const mid = rail.scrollLeft + rail.clientWidth/2; let best = cards[0], bd = 1e9;
+        cards.forEach(c => { const d = Math.abs(c.offsetLeft + c.offsetWidth/2 - mid); if (d < bd) { bd = d; best = c; } });
+        if (best.dataset.id !== selId) { selId = best.dataset.id; refreshPinStyles(); renderRail(); map.panTo(byId(selId).ll, {animate:true}); }
+      }, 120);
+    });
+    function selectEvent(id, fromPin) {
+      selId = id; refreshPinStyles(); renderRail();
+      const card = rail.querySelector(`[data-id="${id}"]`);
+      if (card) rail.scrollTo({left: card.offsetLeft - (rail.clientWidth - card.offsetWidth)/2, behavior:'smooth'});
+      map.flyTo(byId(id).ll, Math.max(map.getZoom(), 17), {animate:true});
+      if (fromPin === undefined) openDetail(id);
+    }
+    $('qc-locbtn').onclick = () => { selId = null; refreshPinStyles(); map.flyTo([42.2769,-83.7375], 15); };
+    $('qc-mapsearch').onclick = () => setTab('list');
+    setMapCat('all');
+
+    // ---- list ----
+    $('qc-q').oninput = e => { query = e.target.value.toLowerCase(); renderList(); };
+    const segStyle = on => `flex:1;border:none;border-radius:999px;padding:8px 0;font-family:var(--font-body);font-weight:700;font-size:12.5px;color:${on?'var(--color-text)':'var(--color-neutral-700)'};background:${on?'white':'none'};box-shadow:${on?'var(--shadow-sm)':'none'};cursor:pointer`;
+    const dayseg = $('qc-dayseg');
+    function renderDayseg() {
+      dayseg.innerHTML = [['all','All'],['today','Today'],['weekend','Weekend']].map(([d,l]) => `<button data-d="${d}" style="${segStyle(dayF===d)}">${l}</button>`).join('');
+    }
+    renderDayseg();
+    dayseg.onclick = e => { const b = e.target.closest('button[data-d]'); if (!b) return; dayF = b.dataset.d; renderDayseg(); renderList(); };
+    function setListCat(c) { listCat = c; chipRow($('qc-listchips'), c, setListCat); renderList(); }
+    const DAYORDER=[['Thu Sep 17','Today'],['Fri Sep 18','Tomorrow'],['Sat Sep 19',''],['Sun Sep 20',''],['Mon Sep 21',''],['Tue Sep 22','']];
+    const FULLDAY={Thu:'Thursday',Fri:'Friday',Sat:'Saturday',Sun:'Sunday',Mon:'Monday',Tue:'Tuesday'};
+    function rowHtml(ev) {
+      const c = CATS[ev.cat];
+      return `<div data-id="${ev.id}" style="display:flex;align-items:center;gap:12px;padding:11px 20px;cursor:pointer">
+        <div style="width:46px;height:46px;border-radius:17px;background:${c.tint};color:${c.ink};display:flex;align-items:center;justify-content:center">${icon(c.ic,21)}</div>
+        <div style="min-width:0"><h5 style="margin:0 0 2px;font-size:15px">${ev.t}</h5><div style="font-size:11.5px;font-weight:600;color:var(--color-neutral-600);line-height:1.35">${ev.time.split(' – ')[0]} · ${ev.v} · ${dist(ev.ll)} mi</div></div>
+        <button data-bk="${ev.id}" style="margin-left:auto;flex:none;border:none;background:none;color:${saved.has(ev.id)?'var(--color-accent)':'var(--color-neutral-500)'};cursor:pointer;padding:8px;border-radius:99px" data-hbg="var(--color-accent-100)">${icon('bookmark',18)}</button>
+      </div>`;
+    }
+    function filtered() {
+      return EVENTS.filter(e => (listCat==='all'||e.cat===listCat)
+        && (dayF==='all'||(dayF==='today'&&e.day==='Thu')||(dayF==='weekend'&&(e.day==='Sat'||e.day==='Sun')))
+        && (!query||(e.t+' '+e.v+' '+CATS[e.cat].label).toLowerCase().includes(query))).sort((a,b)=>a.sort-b.sort);
+    }
+    function renderList() {
+      const evs = filtered(); const el = $('qc-list');
+      if (!evs.length) { el.innerHTML = `<div style="text-align:center;padding:70px 40px;color:var(--color-neutral-600)"><div style="width:96px;height:96px;border-radius:40% 60% 55% 45%/55% 45% 60% 40%;background:var(--color-surface);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;color:var(--color-accent-600)">${icon('search',34)}</div><h4>Nothing matches</h4><p style="font-size:13px">Try a different day or category.</p></div>`; return; }
+      el.innerHTML = DAYORDER.map(([d,nick]) => {
+        const dayEvs = evs.filter(e => `${e.day} ${e.date}`===d); if (!dayEvs.length) return '';
+        return `<div style="font-family:var(--font-heading);font-size:16px;margin:16px 20px 8px;display:flex;align-items:baseline;gap:8px">${nick||FULLDAY[d.split(' ')[0]]} <small style="font-family:var(--font-body);font-weight:600;font-size:11px;color:var(--color-neutral-600)">${d.slice(4)}</small></div>` + dayEvs.map(rowHtml).join('');
+      }).join('');
+      bindRows(el);
+    }
+    function bindRows(el) {
+      el.querySelectorAll('[data-bk]').forEach(b => b.onclick = e => { e.stopPropagation(); toggleSave(b.dataset.bk); });
+      el.querySelectorAll('[data-id]').forEach(r => r.onclick = () => openDetail(r.dataset.id));
+    }
+    setListCat('all');
+
+    // ---- saved ----
+    function renderSaved() {
+      const el = $('qc-savedlist'); const evs = EVENTS.filter(e => saved.has(e.id)).sort((a,b)=>a.sort-b.sort);
+      el.innerHTML = evs.length ? evs.map(rowHtml).join('') : `<div style="text-align:center;padding:70px 40px;color:var(--color-neutral-600)"><div style="width:96px;height:96px;border-radius:40% 60% 55% 45%/55% 45% 60% 40%;background:var(--color-surface);margin:0 auto 18px;display:flex;align-items:center;justify-content:center;color:var(--color-accent-600)">${icon('bookmark',34)}</div><h4>Nothing saved yet</h4><p style="font-size:13px">Tap the bookmark on any event and it lands here.</p><button id="qc-browse" style="flex:none;padding:13px 26px;border-radius:999px;border:none;background:var(--color-accent);color:white;font-family:var(--font-heading);font-size:15px;cursor:pointer">Browse events</button></div>`;
+      bindRows(el);
+      const browse = $('qc-browse'); if (browse) browse.onclick = () => setTab('list');
+    }
+    function toggleSave(id) {
+      saved.has(id) ? saved.delete(id) : saved.add(id); persist();
+      toast(saved.has(id) ? 'Saved to your list' : 'Removed from saved');
+      root.querySelectorAll(`[data-bk="${id}"]`).forEach(b => { b.style.color = saved.has(id) ? 'var(--color-accent)' : 'var(--color-neutral-500)'; });
+      if (tab === 'saved') renderSaved();
+      const d = $('qc-detail'); if (d.style.visibility === 'visible' && d.dataset.id === id) renderDetail(id);
+    }
+    let toastTmr;
+    function toast(msg) { const t = $('qc-toast'); t.textContent = msg; t.style.opacity='1'; t.style.transform='translateX(-50%) translateY(0)'; clearTimeout(toastTmr); toastTmr = setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(-50%) translateY(12px)'; }, 1600); }
+
+    // ---- detail ----
+    function renderDetail(id) {
+      const ev = byId(id), c = CATS[ev.cat], d = $('qc-detail'); d.dataset.id = id;
+      const warm = ['career','clubs','shows'].includes(ev.cat);
+      d.innerHTML = `<div style="flex:none;height:210px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;background:${c.tint}">
+        <button id="qc-dback" style="position:absolute;top:60px;left:16px;width:40px;height:40px;border-radius:99px;background:white;border:none;box-shadow:var(--shadow-md);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--color-text);z-index:5" data-hbg="var(--color-accent-100)">${icon('back',20)}</button>
+        <div style="width:150px;height:150px;border-radius:44% 56% 60% 40%/50% 42% 58% 50%;display:flex;align-items:center;justify-content:center;background:white;color:${c.ink}">${icon(c.ic,56)}</div></div>
+        <div style="flex:1;overflow-y:auto;padding:20px 22px 120px;min-height:0">
+        <span style="font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:999px;background:${warm?'var(--color-accent-200)':'var(--color-accent-2-200)'};color:${warm?'var(--color-accent-800)':'var(--color-accent-2-800)'}">${CATS[ev.cat].label}</span>
+        <h1 style="font-family:var(--font-heading);font-weight:400;font-size:30px;line-height:1.1;margin:6px 0 12px">${ev.t}</h1>
+        <div style="display:flex;gap:12px;align-items:center;padding:9px 0;font-size:13.5px;font-weight:600;color:var(--color-neutral-800)"><span style="flex:none;width:38px;height:38px;border-radius:14px;background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-accent-700)">${icon('clock',18)}</span><span>${ev.day}, ${ev.date}<small style="display:block;font-size:11px;color:var(--color-neutral-600);font-weight:600">${ev.time}</small></span></div>
+        <div style="display:flex;gap:12px;align-items:center;padding:9px 0;font-size:13.5px;font-weight:600;color:var(--color-neutral-800)"><span style="flex:none;width:38px;height:38px;border-radius:14px;background:var(--color-surface);display:flex;align-items:center;justify-content:center;color:var(--color-accent-700)">${icon('pin',18)}</span><span>${ev.v}<small style="display:block;font-size:11px;color:var(--color-neutral-600);font-weight:600">${dist(ev.ll)} mi from the Diag</small></span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 4px">${ev.tags.map(t=>`<span style="font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--color-accent-2-200);color:var(--color-accent-2-800)">${t}</span>`).join('')}</div>
+        <p style="font-size:14px;line-height:1.6;margin-top:10px">${ev.desc}</p>
+        <button id="qc-dask" style="width:100%;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 0;font-family:var(--font-heading);font-size:15px;border:none;cursor:pointer;background:white;color:var(--color-text);box-shadow:var(--shadow-sm)" data-hbg="var(--color-accent-100)">${icon('spark',16)} Ask Scout about this</button></div>
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:14px 20px 34px;background:linear-gradient(transparent,var(--color-bg) 38%);display:flex;gap:10px">
+        <button id="qc-ddir" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 0;font-family:var(--font-heading);font-size:15px;border:none;cursor:pointer;background:white;color:var(--color-text);box-shadow:var(--shadow-sm)" data-hbg="var(--color-accent-100)">${icon('nav',16)} Directions</button>
+        <button id="qc-dsave" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:15px 0;font-family:var(--font-heading);font-size:15px;border:none;cursor:pointer;background:var(--color-accent);color:white" data-hbg="var(--color-accent-600)">${icon('bookmark',16)} ${saved.has(id)?'Saved':'Save'}</button></div>`;
+      $('qc-dback').onclick = closeDetail;
+      $('qc-dsave').onclick = () => toggleSave(id);
+      $('qc-ddir').onclick = () => { closeDetail(); setTab('map'); mapCat='all'; chipRow($('qc-mapchips'),'all',setMapCat); drawPins(); renderRail(); setTimeout(()=>{ map.invalidateSize(); selectEvent(id,true); map.flyTo(ev.ll,17); },80); };
+      $('qc-dask').onclick = () => { closeDetail(); setTab('chat'); setTimeout(() => sendMsg(`Tell me about ${ev.t}`), 350); };
+    }
+    function openDetail(id) { renderDetail(id); const d=$('qc-detail'); d.style.transform='translateY(0)'; d.style.visibility='visible'; }
+    function closeDetail() { const d=$('qc-detail'); d.style.transform='translateY(103%)'; d.style.visibility='hidden'; }
+
+    // ---- chat ----
+    const msgs = $('qc-msgs');
+    let chatStarted = false;
+    const QUICK=['What\u2019s on this weekend?','Anything career related?','Something fun tonight','Where can I volunteer?'];
+    $('qc-qchips').innerHTML = QUICK.map(q => `<button style="flex:none;border:1.5px solid var(--color-accent-300);background:var(--color-accent-100);color:var(--color-accent-800);font-family:var(--font-body);font-weight:700;font-size:12px;padding:8px 13px;border-radius:999px;cursor:pointer" data-hbg="var(--color-accent-200)">${q}</button>`).join('');
+    $('qc-qchips').onclick = e => { const b = e.target.closest('button'); if (b) sendMsg(b.textContent); };
+    function initChat() { if (chatStarted) return; chatStarted = true; aiSay('Hey! I\u2019m Scout \u2014 I know every event happening around campus this week. Ask me for recommendations, or tap a suggestion below.'); }
+    function bubble(kind, html) {
+      const el = document.createElement('div');
+      el.style.cssText = kind==='ai'
+        ? 'max-width:78%;padding:11px 15px;border-radius:22px;font-size:13.5px;font-weight:500;line-height:1.45;align-self:flex-start;background:white;border-bottom-left-radius:8px;box-shadow:var(--shadow-sm)'
+        : 'max-width:78%;padding:11px 15px;border-radius:22px;font-size:13.5px;font-weight:500;line-height:1.45;align-self:flex-end;background:var(--color-accent);color:white;border-bottom-right-radius:8px';
+      el.innerHTML = html; msgs.appendChild(el); msgs.scrollTop = msgs.scrollHeight; return el;
+    }
+    function evCard(ev) {
+      const c = CATS[ev.cat]; const el = document.createElement('div');
+      el.style.cssText = 'align-self:flex-start;width:82%;display:flex;gap:10px;align-items:center;background:white;border-radius:20px;padding:10px 12px;box-shadow:var(--shadow-sm);cursor:pointer;border:1.5px solid var(--color-divider)';
+      el.innerHTML = `<div style="width:42px;height:42px;border-radius:15px;background:${c.tint};color:${c.ink};display:flex;align-items:center;justify-content:center">${icon(c.ic,19)}</div><div style="min-width:0"><h5 style="margin:0;font-size:13.5px">${ev.t}</h5><div style="font-size:11.5px;font-weight:600;color:var(--color-neutral-600)">${ev.day} ${ev.date} · ${ev.time.split(' – ')[0]} · ${dist(ev.ll)} mi</div></div>`;
+      el.onclick = () => openDetail(ev.id); msgs.appendChild(el); msgs.scrollTop = msgs.scrollHeight;
+    }
+    function aiSay(text, ids=[]) {
+      const tp = bubble('ai', '<span style="display:inline-flex;gap:4px;padding:4px 2px"><i style="width:6px;height:6px;border-radius:99px;background:var(--color-neutral-400);display:inline-block;animation:bnc 1s infinite"></i><i style="width:6px;height:6px;border-radius:99px;background:var(--color-neutral-400);display:inline-block;animation:bnc 1s infinite .15s"></i><i style="width:6px;height:6px;border-radius:99px;background:var(--color-neutral-400);display:inline-block;animation:bnc 1s infinite .3s"></i></span>');
+      setTimeout(() => { tp.innerHTML = text; ids.forEach(id => evCard(byId(id))); msgs.scrollTop = msgs.scrollHeight; }, 700 + Math.random()*500);
+    }
+    function reply(q) {
+      q = q.toLowerCase();
+      const named = EVENTS.find(e => q.includes(e.t.toLowerCase()));
+      if (named) return aiSay(`${named.t} is ${named.day} ${named.date} at ${named.time.split(' – ')[0]}, at ${named.v} — about ${dist(named.ll)} mi from you. ${named.desc.split('. ')[0]}. Want me to pull up anything similar?`, [named.id]);
+      if (/career|job|intern|resume|network/.test(q)) return aiSay('Two good ones for that. The Career Expo on Friday is the big one — 120+ employers. If you want prep first, the Resume Clinic on Tuesday does 1:1 reviews.', ['expo','resume']);
+      if (/weekend|saturday|sunday/.test(q)) return aiSay('The weekend is packed. My top picks: Jazz Ensemble Night on Saturday, the IM Soccer Finals in the afternoon, and the Arb River Cleanup on Sunday morning if you want fresh air.', ['jazz','soccer','arb']);
+      if (/tonight|today/.test(q)) return aiSay('Tonight you\u2019ve got two: the Robotics Club Open House at 6 (free pizza), and the Improv Comedy Show at 9 — a fun back-to-back, they\u2019re 2 minutes apart.', ['robot','improv']);
+      if (/volunteer|service|help out/.test(q)) return aiSay('Two options this week: the Arb River Cleanup on Sunday morning, or the Food Pantry Pack-a-thon on Monday — 45-minute walk-in shifts, so it fits between classes.', ['arb','pantry']);
+      if (/music|show|concert|fun|dance|party/.test(q)) return aiSay('For a fun night: Salsa Club Social on Saturday (beginner lesson first hour), Jazz Ensemble Night at Hill, or the Improv Show tonight.', ['salsa','jazz','improv']);
+      if (/sport|game|match|watch/.test(q)) return aiSay('Volleyball vs. Ohio State on Friday is the one to catch — rivalry game, students free. The IM Soccer Finals on Saturday are a good hang too.', ['vball','soccer']);
+      if (/study|class|learn|workshop|python|tutor/.test(q)) return aiSay('The Python for Data Workshop on Monday is beginner-friendly and laptops are provided. There\u2019s also the Midterm Study Jam on Sunday with free coffee and tutors.', ['python','study']);
+      if (/free|cheap|food/.test(q)) return aiSay('Most events this week are free. For free food specifically: Robotics Open House tonight has pizza, and the Study Jam on Sunday runs free coffee until midnight.', ['robot','study']);
+      if (/saved|my list/.test(q)) { const s = [...saved]; return s.length ? aiSay(`You\u2019ve saved ${s.length} — here\u2019s what\u2019s coming up first.`, s.slice(0,3)) : aiSay('Your saved list is empty so far. Tell me what you\u2019re into — music, sports, career stuff — and I\u2019ll suggest some.'); }
+      aiSay('I can recommend by vibe — try \u201csomething fun tonight\u201d, \u201ccareer events\u201d, or \u201cwhere can I volunteer?\u201d. Or tell me what you\u2019re into and I\u2019ll match you.');
+    }
+    function sendMsg(text) { if (!text.trim()) return; bubble('me', text); $('qc-chatin').value=''; setTimeout(() => reply(text), 200); }
+    $('qc-sendbtn').onclick = () => sendMsg($('qc-chatin').value);
+    $('qc-chatin').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(e.target.value); });
+
+    // ---- init ----
+    setTab('map');
+    const fit = () => { const s = Math.min(1, (root.clientHeight-24)/852, (root.clientWidth-24)/393); $('qc-phone').style.transform = `scale(${s})`; };
+    window.addEventListener('resize', fit); fit();
+  }
+}
+
+</script>
+</body>
+</html>

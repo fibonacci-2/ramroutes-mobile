@@ -20,10 +20,36 @@ export async function ensureUserProfile(userId: string): Promise<void> {
     major: '',
     classYear: null,
     schoolId: null,
+    interestsOnboarded: false,
     profileHash: computeProfileHash('', '', []),
     createdAt: serverTimestamp(),
     lastLoginAt: serverTimestamp(),
   });
+}
+
+// Read once, right after school selection, to decide whether AppGate shows
+// the interests-onboarding screen. Bundled with schoolId into one doc read
+// (both are needed at the same point in AppGate's flow) rather than two
+// separate getUserSchoolId/getInterestsOnboarded round trips.
+//
+// interestsOnboarded true OR a non-empty interests array both count as
+// "done" - the flag alone would make every account that existed before this
+// field was added (interestsOnboarded undefined on their doc) see the
+// onboarding screen on their next open even if they'd already picked tags
+// via Preferences long ago.
+export async function getOnboardingStatus(
+  userId: string
+): Promise<{ schoolId: string | null; interestsOnboarded: boolean }> {
+  const snapshot = await getDoc(doc(getFirestore(), 'users', userId));
+  const data = snapshot.data();
+  const schoolId = typeof data?.schoolId === 'string' ? data.schoolId : null;
+  const interests = Array.isArray(data?.interests) ? data.interests : [];
+  const interestsOnboarded = data?.interestsOnboarded === true || interests.length > 0;
+  return { schoolId, interestsOnboarded };
+}
+
+export async function markInterestsOnboarded(userId: string): Promise<void> {
+  await updateDoc(doc(getFirestore(), 'users', userId), { interestsOnboarded: true });
 }
 
 // Cheap non-cryptographic fingerprint (FNV-1a) of the fields that drive
@@ -58,12 +84,6 @@ async function updateProfileFields(
   const major = changes.major ?? (typeof current.major === 'string' ? current.major : '');
   const interests = changes.interests ?? (Array.isArray(current.interests) ? current.interests : []);
   await updateDoc(ref, { ...changes, profileHash: computeProfileHash(bio, major, interests) });
-}
-
-export async function getUserSchoolId(userId: string): Promise<string | null> {
-  const snapshot = await getDoc(doc(getFirestore(), 'users', userId));
-  const schoolId = snapshot.data()?.schoolId;
-  return typeof schoolId === 'string' ? schoolId : null;
 }
 
 export async function setUserSchoolId(userId: string, schoolId: string): Promise<void> {
