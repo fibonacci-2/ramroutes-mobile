@@ -20,19 +20,31 @@ export function orderedTags(tags: Set<Tag>): Tag[] {
   return AVAILABLE_TAGS.filter((tag) => tags.has(tag));
 }
 
+// Each call site (PreferencesScreen and the events list) gets its own
+// useState/fetch - React hooks don't share state across call sites, only
+// the Firestore doc they read is shared. Both screens also unmount on tab
+// switch, so without this cache both flashed an empty selection on every
+// visit while refetching, same issue as useUserBio's bioCache. Module-level
+// so PreferencesScreen writing a tag also warms EventsListScreen's copy.
+const interestsCache = new Map<string, Set<Tag>>();
+
 // Shared between PreferencesScreen (which writes the selection) and the
 // building events list (which filters by it), so both stay in sync off one
 // Firestore-backed source of truth instead of duplicating the load/save logic.
 export function useInterests() {
-  const [selected, setSelected] = useState<Set<Tag>>(new Set());
   const userId = getAuth().currentUser?.uid;
+  const [selected, setSelected] = useState<Set<Tag>>(() =>
+    userId ? interestsCache.get(userId) ?? new Set() : new Set()
+  );
   const pending = useRef<Tag[] | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     getUserInterests(userId).then((interests) => {
-      setSelected(new Set(interests.filter(isTag)));
+      const set = new Set(interests.filter(isTag));
+      interestsCache.set(userId, set);
+      setSelected(set);
     });
   }, [userId]);
 
@@ -56,6 +68,7 @@ export function useInterests() {
     setSelected(next);
 
     if (!userId) return;
+    interestsCache.set(userId, next);
     const ordered = orderedTags(next);
     pending.current = ordered;
     if (timer.current) clearTimeout(timer.current);

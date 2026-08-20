@@ -9,6 +9,16 @@ import { getUserBio, updateUserBio } from '../services/users';
 // several times over.
 const SAVE_DELAY_MS = 2000;
 
+// RootShell unmounts PreferencesScreen on every tab switch ({tab ===
+// 'profile' && ...}), which reset bio back to '' and refetched from
+// scratch on every single visit - a real network round trip each time, so
+// the field visibly flashed empty then repopulated on every tab revisit,
+// not just once at cold start. This module-level cache makes every visit
+// after the first instant (read synchronously as the initial state below);
+// the fetch below still runs to catch changes made elsewhere (e.g. another
+// device), it just no longer has to be waited on to show *something*.
+const bioCache = new Map<string, string>();
+
 // Debounced + flush-on-unmount instead of blur-only: RootShell renders
 // PreferencesScreen conditionally on the active tab ({tab === 'profile' &&
 // ...}), so switching tabs *unmounts* it - a save that only fires on
@@ -16,14 +26,17 @@ const SAVE_DELAY_MS = 2000;
 // blur ever fires. Saving shortly after each keystroke, and flushing
 // immediately on unmount, means the edit persists either way.
 export function useUserBio() {
-  const [bio, setBioState] = useState('');
   const userId = getAuth().currentUser?.uid;
+  const [bio, setBioState] = useState(() => (userId ? bioCache.get(userId) ?? '' : ''));
   const pending = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userId) return;
-    getUserBio(userId).then(setBioState);
+    getUserBio(userId).then((value) => {
+      bioCache.set(userId, value);
+      setBioState(value);
+    });
   }, [userId]);
 
   // Flush a pending debounced edit immediately if the screen unmounts
@@ -32,6 +45,7 @@ export function useUserBio() {
     return () => {
       if (timer.current) clearTimeout(timer.current);
       if (userId && pending.current !== null) {
+        bioCache.set(userId, pending.current);
         updateUserBio(userId, pending.current);
       }
     };
@@ -41,6 +55,7 @@ export function useUserBio() {
     setBioState(next);
     pending.current = next;
     if (!userId) return;
+    bioCache.set(userId, next);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       updateUserBio(userId, next);
@@ -53,6 +68,7 @@ export function useUserBio() {
     pending.current = null;
     if (timer.current) clearTimeout(timer.current);
     if (userId) {
+      bioCache.set(userId, next);
       updateUserBio(userId, next);
     }
   };

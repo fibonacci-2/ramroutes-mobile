@@ -1,15 +1,13 @@
-import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Icon from '../components/Icon';
 import { CLASS_YEARS } from '../constants/classYears';
 import { AVAILABLE_TAGS } from '../constants/tags';
 import { TAG_STYLES } from '../constants/tagStyles';
 import { useInterests } from '../hooks/useInterests';
+import { useSchools } from '../hooks/useSchools';
 import { useStudentProfile } from '../hooks/useStudentProfile';
 import { useUserBio } from '../hooks/useUserBio';
-import { subscribeToSchools } from '../services/schools';
 import { color, font, radius, shadow } from '../theme';
-import { School } from '../types/School';
 
 type Props = {
   schoolId: string;
@@ -21,9 +19,7 @@ export default function PreferencesScreen({ schoolId, onChangeSchool }: Props) {
   const { selected, toggleTag } = useInterests();
   const { bio, setBio, saveBio } = useUserBio();
   const { major, setMajor, saveMajor, classYear, setClassYear } = useStudentProfile();
-  const [schools, setSchools] = useState<School[]>([]);
-
-  useEffect(() => subscribeToSchools(setSchools), []);
+  const schools = useSchools();
 
   const schoolName = schools.find((s) => s.id === schoolId)?.schoolName ?? 'Select a school';
 

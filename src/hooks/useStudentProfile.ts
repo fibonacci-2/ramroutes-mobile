@@ -12,6 +12,15 @@ import {
 // fires functions/index.js's recompute trigger.
 const SAVE_DELAY_MS = 2000;
 
+// Same reasoning as useUserBio's bioCache: RootShell unmounts
+// PreferencesScreen on every tab switch, which reset these fields to
+// empty/null and refetched on every single visit - a real network round
+// trip each time, flashing empty before repopulating. Cached so every visit
+// after the first is instant; the fetch still runs to catch changes made
+// elsewhere.
+const majorCache = new Map<string, string>();
+const classYearCache = new Map<string, string | null>();
+
 // Mirrors useUserBio's load/save shape for the explicit major + class year
 // fields - declared alongside the inferred interest tags so recommendations
 // have a direct signal ("political science major") from day one.
@@ -22,22 +31,31 @@ const SAVE_DELAY_MS = 2000;
 // doesn't need this: it saves immediately on tap, no blur/debounce involved,
 // and (unlike bio/major/interests) isn't part of profileHash at all.
 export function useStudentProfile() {
-  const [major, setMajorState] = useState('');
-  const [classYear, setClassYearState] = useState<string | null>(null);
   const userId = getAuth().currentUser?.uid;
+  const [major, setMajorState] = useState(() => (userId ? majorCache.get(userId) ?? '' : ''));
+  const [classYear, setClassYearState] = useState<string | null>(() =>
+    userId ? classYearCache.get(userId) ?? null : null
+  );
   const pending = useRef<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!userId) return;
-    getUserMajor(userId).then(setMajorState);
-    getUserClassYear(userId).then(setClassYearState);
+    getUserMajor(userId).then((value) => {
+      majorCache.set(userId, value);
+      setMajorState(value);
+    });
+    getUserClassYear(userId).then((value) => {
+      classYearCache.set(userId, value);
+      setClassYearState(value);
+    });
   }, [userId]);
 
   useEffect(() => {
     return () => {
       if (timer.current) clearTimeout(timer.current);
       if (userId && pending.current !== null) {
+        majorCache.set(userId, pending.current);
         updateUserMajor(userId, pending.current);
       }
     };
@@ -47,6 +65,7 @@ export function useStudentProfile() {
     setMajorState(next);
     pending.current = next;
     if (!userId) return;
+    majorCache.set(userId, next);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       updateUserMajor(userId, next);
@@ -59,6 +78,7 @@ export function useStudentProfile() {
     pending.current = null;
     if (timer.current) clearTimeout(timer.current);
     if (userId) {
+      majorCache.set(userId, next);
       updateUserMajor(userId, next);
     }
   };
@@ -66,6 +86,7 @@ export function useStudentProfile() {
   const setClassYear = (next: string) => {
     setClassYearState(next);
     if (userId) {
+      classYearCache.set(userId, next);
       updateUserClassYear(userId, next);
     }
   };
